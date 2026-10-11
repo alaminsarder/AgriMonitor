@@ -1,0 +1,8 @@
+out/
+libs/
+sources.txt
+*.class
+target/
+.vscode/
+*.iml
+.idea/
