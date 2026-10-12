@@ -29,7 +29,8 @@ Sales Management
 
 
 ### Profit Loss Calculation
-Pending..
+<img width="1084" height="643" alt="profitloss" src="https://github.com/user-attachments/assets/3bf33c7b-bd54-471f-b72e-dc280c6eb05b" />
+
 
 ### Report Generation
 Pending..
@@ -58,8 +59,12 @@ AgriMonitor/
 3. Make sure MongoDB service is running
 4. Compile the project
    javac -cp "libs/*" -d out -encoding UTF-8 src/main/java/com/agrimonitor/*.java src/main/java/com/agrimonitor/*/*.java
-5. Run the application
-   java -cp "out;libs/*" com.agrimonitor.Main
+5. ### 5. Run the Application
+
+Copy and run the following command:
+
+```powershell
+java -cp "out;libs/*" com.agrimonitor.Main
 
 ## Project Team
 
