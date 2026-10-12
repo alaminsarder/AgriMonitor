@@ -8,7 +8,9 @@ import com.mongodb.client.model.Filters;
 import org.bson.Document;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 public class CostDAO {
 
@@ -80,5 +82,21 @@ public class CostDAO {
             cursor.close();
         }
         return total;
+    }
+
+    public Map<String, Double> getCostBreakdownByCategory() {
+        Map<String, Double> breakdown = new LinkedHashMap<>();
+        MongoCursor<Document> cursor = collection.find().iterator();
+        try {
+            while (cursor.hasNext()) {
+                Document doc = cursor.next();
+                String description = doc.getString("description");
+                double amount = doc.getDouble("amount");
+                breakdown.merge(description, amount, Double::sum);
+            }
+        } finally {
+            cursor.close();
+        }
+        return breakdown;
     }
 }

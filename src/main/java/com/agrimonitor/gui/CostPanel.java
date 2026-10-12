@@ -15,7 +15,8 @@ public class CostPanel extends JPanel {
     private CostDAO costDAO;
     private CropDAO cropDAO;
     private FieldDAO fieldDAO;
-    private JTextField cropIdField, fieldIdField, descriptionField, amountField, dateField, searchCropIdField;
+    private JTextField cropIdField, fieldIdField, amountField, dateField, searchCropIdField;
+    private JComboBox<String> descriptionBox;
     private JLabel totalLabel;
     private DefaultTableModel tableModel;
     private JTable table;
@@ -28,7 +29,7 @@ public class CostPanel extends JPanel {
         setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
 
         JPanel formPanel = new JPanel(new GridLayout(7, 2, 10, 10));
-        formPanel.setBorder(BorderFactory.createTitledBorder("Cost Information"));
+        formPanel.setBorder(BorderFactory.createTitledBorder("Add Cost Record"));
 
         formPanel.add(new JLabel("Crop ID:"));
         cropIdField = new JTextField();
@@ -38,9 +39,10 @@ public class CostPanel extends JPanel {
         fieldIdField = new JTextField();
         formPanel.add(fieldIdField);
 
-        formPanel.add(new JLabel("Description (Seeds/Fertilizer/Labor...):"));
-        descriptionField = new JTextField();
-        formPanel.add(descriptionField);
+        formPanel.add(new JLabel("Cost Category:"));
+        String[] categories = {"Seeds", "Fertilizer", "Labor", "Irrigation", "Pesticide", "Transportation", "Other"};
+        descriptionBox = new JComboBox<>(categories);
+        formPanel.add(descriptionBox);
 
         formPanel.add(new JLabel("Amount (BDT):"));
         amountField = new JTextField();
@@ -50,14 +52,14 @@ public class CostPanel extends JPanel {
         dateField = new JTextField();
         formPanel.add(dateField);
 
-        formPanel.add(new JLabel("Search Total Cost by Crop ID:"));
+        formPanel.add(new JLabel("Check Total Cost for Crop ID:"));
         searchCropIdField = new JTextField();
         formPanel.add(searchCropIdField);
 
         JPanel buttonPanel = new JPanel(new FlowLayout());
-        JButton addButton = new JButton("Add Cost Record");
+        JButton addButton = new JButton("Add Cost");
         JButton refreshButton = new JButton("View All");
-        JButton searchButton = new JButton("Get Total Cost");
+        JButton searchButton = new JButton("Get Total");
         JButton clearButton = new JButton("Clear");
 
         buttonPanel.add(addButton);
@@ -71,7 +73,7 @@ public class CostPanel extends JPanel {
         totalLabel.setFont(new Font("Arial", Font.BOLD, 14));
         formPanel.add(totalLabel);
 
-        tableModel = new DefaultTableModel(new Object[]{"Crop ID", "Field ID", "Description", "Amount", "Date"}, 0);
+        tableModel = new DefaultTableModel(new Object[]{"Crop ID", "Field ID", "Category", "Amount (BDT)", "Date"}, 0);
         table = new JTable(tableModel);
         JScrollPane scrollPane = new JScrollPane(table);
 
@@ -90,12 +92,12 @@ public class CostPanel extends JPanel {
         try {
             String cropId = cropIdField.getText().trim();
             String fieldId = fieldIdField.getText().trim();
-            String description = descriptionField.getText().trim();
+            String description = (String) descriptionBox.getSelectedItem();
             double amount = Double.parseDouble(amountField.getText().trim());
             String date = dateField.getText().trim();
 
-            if (cropId.isEmpty() || fieldId.isEmpty() || description.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Crop ID, Field ID, and Description are required.");
+            if (cropId.isEmpty() || fieldId.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Crop ID and Field ID are required.");
                 return;
             }
 
@@ -113,11 +115,11 @@ public class CostPanel extends JPanel {
             boolean success = costDAO.addCost(cost);
 
             if (success) {
-                JOptionPane.showMessageDialog(this, "Cost record added successfully.");
+                JOptionPane.showMessageDialog(this, "Cost added successfully.");
                 clearForm();
                 loadAllCosts();
             } else {
-                JOptionPane.showMessageDialog(this, "Failed to add cost record.");
+                JOptionPane.showMessageDialog(this, "Failed to add cost.");
             }
         } catch (NumberFormatException ex) {
             JOptionPane.showMessageDialog(this, "Please enter a valid number for Amount.");
@@ -142,13 +144,12 @@ public class CostPanel extends JPanel {
             return;
         }
         double total = costDAO.getTotalCostByCropId(cropId);
-        totalLabel.setText("Total Cost for Crop " + cropId + ": " + total + " BDT");
+        totalLabel.setText("Total Cost for " + cropId + ": " + total + " BDT");
     }
 
     private void clearForm() {
         cropIdField.setText("");
         fieldIdField.setText("");
-        descriptionField.setText("");
         amountField.setText("");
         dateField.setText("");
         searchCropIdField.setText("");

@@ -3,105 +3,141 @@ package com.agrimonitor.gui;
 import com.agrimonitor.service.ProfitLossService;
 
 import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.text.DecimalFormat;
 
 public class ProfitLossPanel extends JPanel {
 
     private ProfitLossService profitLossService;
-    private JLabel totalCostLabel, totalSalesLabel, resultLabel;
-    private JTextField cropIdField;
-    private JLabel cropResultLabel;
+    private DecimalFormat df;
+
+    private JLabel costValueLabel;
+    private JLabel salesValueLabel;
+    private JLabel resultValueLabel;
+    private JLabel resultTitleLabel;
+    private JLabel marginValueLabel;
+
+    private DefaultTableModel tableModel;
+    private JTable table;
 
     public ProfitLossPanel() {
         profitLossService = new ProfitLossService();
+        df = new DecimalFormat("#,##0.00");
+
         setLayout(new BorderLayout(10, 10));
-        setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
 
-        JPanel topPanel = new JPanel();
-        topPanel.setLayout(new BoxLayout(topPanel, BoxLayout.Y_AXIS));
-        topPanel.setBorder(BorderFactory.createTitledBorder("Overall Profit / Loss"));
+        JLabel header = new JLabel("Financial Overview", SwingConstants.LEFT);
+        header.setFont(new Font("Arial", Font.BOLD, 20));
+        header.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
 
-        JButton calculateButton = new JButton("Calculate Overall Profit/Loss");
-        calculateButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        JPanel cardsPanel = new JPanel(new GridLayout(1, 4, 15, 0));
+        cardsPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 15, 0));
 
-        totalCostLabel = new JLabel("Total Cost: -");
-        totalSalesLabel = new JLabel("Total Sales: -");
-        resultLabel = new JLabel("Result: -");
+        JPanel costCard = createCard("TOTAL COST", "0.00 BDT", new Color(220, 53, 69));
+        costValueLabel = (JLabel) costCard.getClientProperty("valueLabel");
 
-        totalCostLabel.setFont(new Font("Arial", Font.PLAIN, 16));
-        totalSalesLabel.setFont(new Font("Arial", Font.PLAIN, 16));
-        resultLabel.setFont(new Font("Arial", Font.BOLD, 18));
+        JPanel salesCard = createCard("TOTAL SALES", "0.00 BDT", new Color(13, 110, 253));
+        salesValueLabel = (JLabel) salesCard.getClientProperty("valueLabel");
 
-        totalCostLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        totalSalesLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        resultLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        JPanel resultCard = createCard("NET RESULT", "0.00 BDT", new Color(25, 135, 84));
+        resultValueLabel = (JLabel) resultCard.getClientProperty("valueLabel");
+        resultTitleLabel = (JLabel) resultCard.getClientProperty("titleLabel");
 
-        topPanel.add(Box.createVerticalStrut(10));
-        topPanel.add(calculateButton);
-        topPanel.add(Box.createVerticalStrut(15));
-        topPanel.add(totalCostLabel);
-        topPanel.add(totalSalesLabel);
-        topPanel.add(resultLabel);
-        topPanel.add(Box.createVerticalStrut(10));
+        JPanel marginCard = createCard("PROFIT MARGIN", "0.00 %", new Color(102, 16, 242));
+        marginValueLabel = (JLabel) marginCard.getClientProperty("valueLabel");
 
-        JPanel bottomPanel = new JPanel();
-        bottomPanel.setLayout(new BoxLayout(bottomPanel, BoxLayout.Y_AXIS));
-        bottomPanel.setBorder(BorderFactory.createTitledBorder("Profit / Loss by Crop"));
+        cardsPanel.add(costCard);
+        cardsPanel.add(salesCard);
+        cardsPanel.add(resultCard);
+        cardsPanel.add(marginCard);
 
-        JPanel searchRow = new JPanel(new FlowLayout());
-        searchRow.add(new JLabel("Crop ID:"));
-        cropIdField = new JTextField(15);
-        searchRow.add(cropIdField);
-        JButton searchButton = new JButton("Calculate");
-        searchRow.add(searchButton);
+        JPanel topPanel = new JPanel(new BorderLayout());
+        JButton refreshButton = new JButton("Refresh Dashboard");
+        refreshButton.setFont(new Font("Arial", Font.BOLD, 13));
+        JPanel refreshWrap = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        refreshWrap.add(refreshButton);
 
-        cropResultLabel = new JLabel(" ");
-        cropResultLabel.setFont(new Font("Arial", Font.BOLD, 16));
-        cropResultLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        topPanel.add(header, BorderLayout.WEST);
+        topPanel.add(refreshWrap, BorderLayout.EAST);
 
-        bottomPanel.add(searchRow);
-        bottomPanel.add(Box.createVerticalStrut(10));
-        bottomPanel.add(cropResultLabel);
+        JPanel northContainer = new JPanel();
+        northContainer.setLayout(new BoxLayout(northContainer, BoxLayout.Y_AXIS));
+        northContainer.add(topPanel);
+        northContainer.add(cardsPanel);
 
-        add(topPanel, BorderLayout.NORTH);
-        add(bottomPanel, BorderLayout.CENTER);
+        tableModel = new DefaultTableModel(new Object[]{"Crop ID", "Crop Name", "Total Cost (BDT)", "Total Sales (BDT)", "Profit / Loss (BDT)"}, 0);
+        table = new JTable(tableModel);
+        table.setRowHeight(26);
+        table.getTableHeader().setFont(new Font("Arial", Font.BOLD, 13));
+        JScrollPane scrollPane = new JScrollPane(table);
+        scrollPane.setBorder(BorderFactory.createTitledBorder("Crop-wise Profit / Loss Breakdown"));
 
-        calculateButton.addActionListener(e -> calculateOverall());
-        searchButton.addActionListener(e -> calculateByCrop());
+        add(northContainer, BorderLayout.NORTH);
+        add(scrollPane, BorderLayout.CENTER);
+
+        refreshButton.addActionListener(e -> refreshDashboard());
+
+        refreshDashboard();
     }
 
-    private void calculateOverall() {
+    private JPanel createCard(String title, String value, Color color) {
+        JPanel card = new JPanel();
+        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
+        card.setBackground(color);
+        card.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+
+        JLabel titleLabel = new JLabel(title);
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 12));
+        titleLabel.setForeground(Color.WHITE);
+        titleLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JLabel valueLabel = new JLabel(value);
+        valueLabel.setFont(new Font("Arial", Font.BOLD, 20));
+        valueLabel.setForeground(Color.WHITE);
+        valueLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        card.add(titleLabel);
+        card.add(Box.createVerticalStrut(8));
+        card.add(valueLabel);
+
+        card.putClientProperty("valueLabel", valueLabel);
+        card.putClientProperty("titleLabel", titleLabel);
+
+        return card;
+    }
+
+    private void refreshDashboard() {
         double totalCost = profitLossService.calculateTotalCost();
         double totalSales = profitLossService.calculateTotalSales();
         double result = totalSales - totalCost;
+        double margin = profitLossService.calculateProfitMarginPercent();
 
-        totalCostLabel.setText("Total Cost: " + totalCost + " BDT");
-        totalSalesLabel.setText("Total Sales: " + totalSales + " BDT");
-
-        if (result >= 0) {
-            resultLabel.setText("Profit: " + result + " BDT");
-            resultLabel.setForeground(new Color(0, 128, 0));
-        } else {
-            resultLabel.setText("Loss: " + Math.abs(result) + " BDT");
-            resultLabel.setForeground(Color.RED);
-        }
-    }
-
-    private void calculateByCrop() {
-        String cropId = cropIdField.getText().trim();
-        if (cropId.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Please enter a Crop ID.");
-            return;
-        }
-
-        double result = profitLossService.calculateProfitOrLossByCrop(cropId);
+        costValueLabel.setText(df.format(totalCost) + " BDT");
+        salesValueLabel.setText(df.format(totalSales) + " BDT");
+        marginValueLabel.setText(df.format(margin) + " %");
 
         if (result >= 0) {
-            cropResultLabel.setText("Profit for " + cropId + ": " + result + " BDT");
-            cropResultLabel.setForeground(new Color(0, 128, 0));
+            resultValueLabel.setText(df.format(result) + " BDT");
+            resultTitleLabel.setText("NET PROFIT");
         } else {
-            cropResultLabel.setText("Loss for " + cropId + ": " + Math.abs(result) + " BDT");
-            cropResultLabel.setForeground(Color.RED);
+            resultValueLabel.setText(df.format(Math.abs(result)) + " BDT");
+            resultTitleLabel.setText("NET LOSS");
+        }
+
+        tableModel.setRowCount(0);
+        for (Object[] row : profitLossService.getCropWiseProfitLoss()) {
+            String cropId = (String) row[0];
+            String cropName = (String) row[1];
+            double cost = (double) row[2];
+            double sales = (double) row[3];
+            double profit = (double) row[4];
+
+            tableModel.addRow(new Object[]{
+                    cropId, cropName, df.format(cost), df.format(sales),
+                    (profit >= 0 ? "+" : "") + df.format(profit)
+            });
         }
     }
 }
