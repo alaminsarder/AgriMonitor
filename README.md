@@ -23,7 +23,6 @@ Main Dashboard
 
 
 ### Sales Management
-Sales Management
 
 <img width="1088" height="640" alt="Screenshot_2" src="https://github.com/user-attachments/assets/df4fc771-a871-4ac0-8fc0-a76488dca580" />
 
@@ -33,7 +32,7 @@ Sales Management
 
 
 ### Report Generation
-Pending..
+<img width="1084" height="643" alt="image" src="https://github.com/user-attachments/assets/38bebb2c-0deb-40e4-a1fc-4862c105ec2a" />
 
 ## Tech Stack
 
@@ -63,7 +62,6 @@ AgriMonitor/
 
 Copy and run the following command:
 
-```powershell
 java -cp "out;libs/*" com.agrimonitor.Main
 
 
