@@ -44,7 +44,7 @@ public class MainFrame extends JFrame {
         logoPanel.setPreferredSize(new Dimension(230, 90));
         logoPanel.setBorder(new EmptyBorder(15, 20, 15, 20));
 
-        JLabel logoIcon = new JLabel("\uD83C\uDF3E AgriMonitor");
+        JLabel logoIcon = new JLabel("AgriMonitor");
         logoIcon.setFont(new Font("Segoe UI", Font.BOLD, 20));
         logoIcon.setForeground(Color.WHITE);
         logoIcon.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -66,7 +66,7 @@ public class MainFrame extends JFrame {
         userPanel.setMaximumSize(new Dimension(230, 50));
         userPanel.setBorder(new EmptyBorder(10, 20, 10, 20));
 
-        JLabel userLabel = new JLabel("\uD83D\uDC64 " + Session.getUsername());
+        JLabel userLabel = new JLabel("User: " + Session.getUsername());
         userLabel.setFont(new Font("Segoe UI", Font.BOLD, 13));
         userLabel.setForeground(UITheme.PRIMARY_LIGHT);
         userLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -100,17 +100,11 @@ public class MainFrame extends JFrame {
 
         sidebarPanel.add(Box.createVerticalGlue());
 
-        UITheme.SidebarButton logoutBtn = UITheme.createSidebarButton("\u21AA  Logout");
+        UITheme.SidebarButton logoutBtn = UITheme.createSidebarButton("Logout");
         logoutBtn.setAlignmentX(Component.LEFT_ALIGNMENT);
         logoutBtn.setMaximumSize(new Dimension(230, 48));
         logoutBtn.addActionListener(e -> handleLogout());
         sidebarPanel.add(logoutBtn);
-
-        UITheme.SidebarButton exitBtn = UITheme.createSidebarButton("\u23FB  Exit");
-        exitBtn.setAlignmentX(Component.LEFT_ALIGNMENT);
-        exitBtn.setMaximumSize(new Dimension(230, 48));
-        exitBtn.addActionListener(e -> System.exit(0));
-        sidebarPanel.add(exitBtn);
         sidebarPanel.add(Box.createRigidArea(new Dimension(0, 15)));
 
         return sidebarPanel;
@@ -161,7 +155,6 @@ public class MainFrame extends JFrame {
     private void switchPanel(String name, UITheme.SidebarButton clicked) {
         titleLabel.setText(name);
         cardLayout.show(contentPanel, name);
-
         for (UITheme.SidebarButton btn : sidebarButtons) {
             btn.setSelected(btn == clicked);
         }
