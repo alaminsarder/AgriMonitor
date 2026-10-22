@@ -25,27 +25,23 @@ public class ProfitLossPanel extends JPanel {
         profitLossService = new ProfitLossService();
         df = new DecimalFormat("#,##0.00");
 
-        setLayout(new BorderLayout(10, 10));
-        setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
-
-        JLabel header = new JLabel("Financial Overview", SwingConstants.LEFT);
-        header.setFont(new Font("Arial", Font.BOLD, 20));
-        header.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
+        setLayout(new BorderLayout(0, 15));
+        setBackground(UITheme.BACKGROUND);
 
         JPanel cardsPanel = new JPanel(new GridLayout(1, 4, 15, 0));
-        cardsPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 15, 0));
+        cardsPanel.setBackground(UITheme.BACKGROUND);
 
-        JPanel costCard = createCard("TOTAL COST", "0.00 BDT", new Color(220, 53, 69));
+        JPanel costCard = createCard("TOTAL COST", "0.00 BDT", UITheme.DANGER);
         costValueLabel = (JLabel) costCard.getClientProperty("valueLabel");
 
-        JPanel salesCard = createCard("TOTAL SALES", "0.00 BDT", new Color(13, 110, 253));
+        JPanel salesCard = createCard("TOTAL SALES", "0.00 BDT", UITheme.INFO);
         salesValueLabel = (JLabel) salesCard.getClientProperty("valueLabel");
 
-        JPanel resultCard = createCard("NET RESULT", "0.00 BDT", new Color(25, 135, 84));
+        JPanel resultCard = createCard("NET RESULT", "0.00 BDT", UITheme.SUCCESS);
         resultValueLabel = (JLabel) resultCard.getClientProperty("valueLabel");
         resultTitleLabel = (JLabel) resultCard.getClientProperty("titleLabel");
 
-        JPanel marginCard = createCard("PROFIT MARGIN", "0.00 %", new Color(102, 16, 242));
+        JPanel marginCard = createCard("PROFIT MARGIN", "0.00 %", new Color(124, 58, 237));
         marginValueLabel = (JLabel) marginCard.getClientProperty("valueLabel");
 
         cardsPanel.add(costCard);
@@ -54,28 +50,41 @@ public class ProfitLossPanel extends JPanel {
         cardsPanel.add(marginCard);
 
         JPanel topPanel = new JPanel(new BorderLayout());
-        JButton refreshButton = new JButton("Refresh Dashboard");
-        refreshButton.setFont(new Font("Arial", Font.BOLD, 13));
+        topPanel.setBackground(UITheme.BACKGROUND);
+
+        JButton refreshButton = UITheme.createStyledButton("Refresh Dashboard", UITheme.PRIMARY);
         JPanel refreshWrap = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        refreshWrap.setBackground(UITheme.BACKGROUND);
         refreshWrap.add(refreshButton);
 
-        topPanel.add(header, BorderLayout.WEST);
         topPanel.add(refreshWrap, BorderLayout.EAST);
 
         JPanel northContainer = new JPanel();
         northContainer.setLayout(new BoxLayout(northContainer, BoxLayout.Y_AXIS));
+        northContainer.setBackground(UITheme.BACKGROUND);
         northContainer.add(topPanel);
+        northContainer.add(Box.createRigidArea(new Dimension(0, 10)));
         northContainer.add(cardsPanel);
 
-        tableModel = new DefaultTableModel(new Object[]{"Crop ID", "Crop Name", "Total Cost (BDT)", "Total Sales (BDT)", "Profit / Loss (BDT)"}, 0);
+        JPanel tableCard = UITheme.createCardPanel();
+        tableCard.setLayout(new BorderLayout());
+        tableCard.add(UITheme.createCardTitle("Crop-wise Profit / Loss Breakdown"), BorderLayout.NORTH);
+
+        tableModel = new DefaultTableModel(new Object[]{"Crop ID", "Crop Name", "Total Cost (BDT)", "Total Sales (BDT)", "Profit / Loss (BDT)"}, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
         table = new JTable(tableModel);
-        table.setRowHeight(26);
-        table.getTableHeader().setFont(new Font("Arial", Font.BOLD, 13));
+        UITheme.styleTable(table);
+
         JScrollPane scrollPane = new JScrollPane(table);
-        scrollPane.setBorder(BorderFactory.createTitledBorder("Crop-wise Profit / Loss Breakdown"));
+        scrollPane.setBorder(BorderFactory.createLineBorder(UITheme.BORDER_COLOR));
+        tableCard.add(scrollPane, BorderLayout.CENTER);
 
         add(northContainer, BorderLayout.NORTH);
-        add(scrollPane, BorderLayout.CENTER);
+        add(tableCard, BorderLayout.CENTER);
 
         refreshButton.addActionListener(e -> refreshDashboard());
 
@@ -86,15 +95,15 @@ public class ProfitLossPanel extends JPanel {
         JPanel card = new JPanel();
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
         card.setBackground(color);
-        card.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        card.setBorder(BorderFactory.createEmptyBorder(18, 18, 18, 18));
 
         JLabel titleLabel = new JLabel(title);
-        titleLabel.setFont(new Font("Arial", Font.BOLD, 12));
+        titleLabel.setFont(UITheme.FONT_SMALL);
         titleLabel.setForeground(Color.WHITE);
         titleLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         JLabel valueLabel = new JLabel(value);
-        valueLabel.setFont(new Font("Arial", Font.BOLD, 20));
+        valueLabel.setFont(new Font("Segoe UI", Font.BOLD, 22));
         valueLabel.setForeground(Color.WHITE);
         valueLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
 

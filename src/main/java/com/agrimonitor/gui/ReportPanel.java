@@ -12,20 +12,24 @@ public class ReportPanel extends JPanel {
 
     public ReportPanel() {
         reportService = new ReportService();
-        setLayout(new BorderLayout(10, 10));
-        setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        setLayout(new BorderLayout(0, 15));
+        setBackground(UITheme.BACKGROUND);
+
+        JPanel buttonCard = UITheme.createCardPanel();
+        buttonCard.setLayout(new BorderLayout());
+        buttonCard.add(UITheme.createCardTitle("Report Generation"), BorderLayout.NORTH);
 
         JPanel buttonPanel = new JPanel(new GridLayout(2, 4, 10, 10));
-        buttonPanel.setBorder(BorderFactory.createTitledBorder("Report Generation"));
+        buttonPanel.setBackground(UITheme.CARD_BG);
 
-        JButton fieldReportButton = new JButton("Field Report");
-        JButton cropReportButton = new JButton("Crop Report");
-        JButton irrigationReportButton = new JButton("Irrigation Report");
-        JButton pesticideReportButton = new JButton("Pesticide Report");
-        JButton costReportButton = new JButton("Cost Report");
-        JButton salesReportButton = new JButton("Sales Report");
-        JButton profitLossReportButton = new JButton("Profit/Loss Report");
-        JButton overallReportButton = new JButton("Overall Farm Report");
+        JButton fieldReportButton = UITheme.createStyledButton("Field Report", UITheme.PRIMARY);
+        JButton cropReportButton = UITheme.createStyledButton("Crop Report", UITheme.PRIMARY);
+        JButton irrigationReportButton = UITheme.createStyledButton("Irrigation Report", UITheme.PRIMARY);
+        JButton pesticideReportButton = UITheme.createStyledButton("Pesticide Report", UITheme.PRIMARY);
+        JButton costReportButton = UITheme.createStyledButton("Cost Report", UITheme.INFO);
+        JButton salesReportButton = UITheme.createStyledButton("Sales Report", UITheme.INFO);
+        JButton profitLossReportButton = UITheme.createStyledButton("Profit/Loss Report", UITheme.SUCCESS);
+        JButton overallReportButton = UITheme.createStyledButton("Overall Farm Report", UITheme.ACCENT);
 
         buttonPanel.add(fieldReportButton);
         buttonPanel.add(cropReportButton);
@@ -36,13 +40,23 @@ public class ReportPanel extends JPanel {
         buttonPanel.add(profitLossReportButton);
         buttonPanel.add(overallReportButton);
 
+        buttonCard.add(buttonPanel, BorderLayout.CENTER);
+
+        JPanel outputCard = UITheme.createCardPanel();
+        outputCard.setLayout(new BorderLayout());
+        outputCard.add(UITheme.createCardTitle("Report Output"), BorderLayout.NORTH);
+
         textArea = new JTextArea();
         textArea.setEditable(false);
-        textArea.setFont(new Font("Monospaced", Font.PLAIN, 14));
-        JScrollPane scrollPane = new JScrollPane(textArea);
+        textArea.setFont(new Font("Consolas", Font.PLAIN, 14));
+        textArea.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        add(buttonPanel, BorderLayout.NORTH);
-        add(scrollPane, BorderLayout.CENTER);
+        JScrollPane scrollPane = new JScrollPane(textArea);
+        scrollPane.setBorder(BorderFactory.createLineBorder(UITheme.BORDER_COLOR));
+        outputCard.add(scrollPane, BorderLayout.CENTER);
+
+        add(buttonCard, BorderLayout.NORTH);
+        add(outputCard, BorderLayout.CENTER);
 
         fieldReportButton.addActionListener(e -> textArea.setText(reportService.getFieldReportText()));
         cropReportButton.addActionListener(e -> textArea.setText(reportService.getCropReportText()));

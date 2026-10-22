@@ -20,56 +20,75 @@ public class CropPanel extends JPanel {
     public CropPanel() {
         cropDAO = new CropDAO();
         fieldDAO = new FieldDAO();
-        setLayout(new BorderLayout(10, 10));
-        setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        setLayout(new BorderLayout(0, 15));
+        setBackground(UITheme.BACKGROUND);
 
-        JPanel formPanel = new JPanel(new GridLayout(6, 2, 10, 10));
-        formPanel.setBorder(BorderFactory.createTitledBorder("Crop Information"));
+        add(buildFormCard(), BorderLayout.NORTH);
+        add(buildTableCard(), BorderLayout.CENTER);
 
-        formPanel.add(new JLabel("Crop ID:"));
-        cropIdField = new JTextField();
-        formPanel.add(cropIdField);
+        loadCrops();
+    }
 
-        formPanel.add(new JLabel("Crop Name:"));
-        cropNameField = new JTextField();
-        formPanel.add(cropNameField);
+    private JPanel buildFormCard() {
+        JPanel card = UITheme.createCardPanel();
+        card.setLayout(new BorderLayout());
 
-        formPanel.add(new JLabel("Crop Type:"));
-        cropTypeField = new JTextField();
-        formPanel.add(cropTypeField);
+        card.add(UITheme.createCardTitle("Crop Information"), BorderLayout.NORTH);
 
-        formPanel.add(new JLabel("Growth Duration (days):"));
-        growthDurationField = new JTextField();
-        formPanel.add(growthDurationField);
+        JPanel fieldsGrid = new JPanel(new GridLayout(1, 5, 15, 12));
+        fieldsGrid.setBackground(UITheme.CARD_BG);
 
-        formPanel.add(new JLabel("Field ID:"));
-        fieldIdField = new JTextField();
-        formPanel.add(fieldIdField);
+        cropIdField = UITheme.createTextField();
+        cropNameField = UITheme.createTextField();
+        cropTypeField = UITheme.createTextField();
+        growthDurationField = UITheme.createTextField();
+        fieldIdField = UITheme.createTextField();
 
-        JPanel buttonPanel = new JPanel(new FlowLayout());
-        JButton addButton = new JButton("Add Crop");
-        JButton updateButton = new JButton("Update Crop");
-        JButton refreshButton = new JButton("Refresh");
-        JButton clearButton = new JButton("Clear");
+        fieldsGrid.add(UITheme.labeledField("Crop ID", cropIdField));
+        fieldsGrid.add(UITheme.labeledField("Crop Name", cropNameField));
+        fieldsGrid.add(UITheme.labeledField("Crop Type", cropTypeField));
+        fieldsGrid.add(UITheme.labeledField("Growth Duration (days)", growthDurationField));
+        fieldsGrid.add(UITheme.labeledField("Field ID", fieldIdField));
+
+        card.add(fieldsGrid, BorderLayout.CENTER);
+
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 15));
+        buttonPanel.setBackground(UITheme.CARD_BG);
+
+        JButton addButton = UITheme.createStyledButton("Add Crop", UITheme.PRIMARY);
+        JButton updateButton = UITheme.createStyledButton("Update Crop", UITheme.INFO);
+        JButton refreshButton = UITheme.createStyledButton("Refresh", UITheme.NEUTRAL);
+        JButton clearButton = UITheme.createStyledButton("Clear", UITheme.TEXT_LIGHT);
 
         buttonPanel.add(addButton);
         buttonPanel.add(updateButton);
         buttonPanel.add(refreshButton);
         buttonPanel.add(clearButton);
 
-        formPanel.add(buttonPanel);
-
-        tableModel = new DefaultTableModel(new Object[]{"Crop ID", "Crop Name", "Crop Type", "Growth Duration", "Field ID"}, 0);
-        table = new JTable(tableModel);
-        JScrollPane scrollPane = new JScrollPane(table);
-
-        add(formPanel, BorderLayout.NORTH);
-        add(scrollPane, BorderLayout.CENTER);
+        card.add(buttonPanel, BorderLayout.SOUTH);
 
         addButton.addActionListener(e -> addCrop());
         updateButton.addActionListener(e -> updateCrop());
         refreshButton.addActionListener(e -> loadCrops());
         clearButton.addActionListener(e -> clearForm());
+
+        return card;
+    }
+
+    private JPanel buildTableCard() {
+        JPanel card = UITheme.createCardPanel();
+        card.setLayout(new BorderLayout());
+
+        card.add(UITheme.createCardTitle("All Crops"), BorderLayout.NORTH);
+
+        tableModel = new DefaultTableModel(new Object[]{"Crop ID", "Crop Name", "Crop Type", "Growth Duration", "Field ID"}, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+        table = new JTable(tableModel);
+        UITheme.styleTable(table);
 
         table.getSelectionModel().addListSelectionListener(e -> {
             int row = table.getSelectedRow();
@@ -82,7 +101,11 @@ public class CropPanel extends JPanel {
             }
         });
 
-        loadCrops();
+        JScrollPane scrollPane = new JScrollPane(table);
+        scrollPane.setBorder(BorderFactory.createLineBorder(UITheme.BORDER_COLOR));
+        card.add(scrollPane, BorderLayout.CENTER);
+
+        return card;
     }
 
     private void addCrop() {

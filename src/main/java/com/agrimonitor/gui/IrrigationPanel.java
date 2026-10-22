@@ -20,54 +20,79 @@ public class IrrigationPanel extends JPanel {
     public IrrigationPanel() {
         irrigationDAO = new IrrigationDAO();
         fieldDAO = new FieldDAO();
-        setLayout(new BorderLayout(10, 10));
-        setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        setLayout(new BorderLayout(0, 15));
+        setBackground(UITheme.BACKGROUND);
 
-        JPanel formPanel = new JPanel(new GridLayout(5, 2, 10, 10));
-        formPanel.setBorder(BorderFactory.createTitledBorder("Irrigation Information"));
+        add(buildFormCard(), BorderLayout.NORTH);
+        add(buildTableCard(), BorderLayout.CENTER);
 
-        formPanel.add(new JLabel("Field ID:"));
-        fieldIdField = new JTextField();
-        formPanel.add(fieldIdField);
+        loadAllIrrigation();
+    }
 
-        formPanel.add(new JLabel("Irrigation Date (YYYY-MM-DD):"));
-        dateField = new JTextField();
-        formPanel.add(dateField);
+    private JPanel buildFormCard() {
+        JPanel card = UITheme.createCardPanel();
+        card.setLayout(new BorderLayout());
 
-        formPanel.add(new JLabel("Water Quantity (liters):"));
-        waterQuantityField = new JTextField();
-        formPanel.add(waterQuantityField);
+        card.add(UITheme.createCardTitle("Irrigation Information"), BorderLayout.NORTH);
 
-        formPanel.add(new JLabel("Search by Field ID:"));
-        searchFieldIdField = new JTextField();
-        formPanel.add(searchFieldIdField);
+        JPanel fieldsGrid = new JPanel(new GridLayout(1, 4, 15, 12));
+        fieldsGrid.setBackground(UITheme.CARD_BG);
 
-        JPanel buttonPanel = new JPanel(new FlowLayout());
-        JButton addButton = new JButton("Add Irrigation Record");
-        JButton refreshButton = new JButton("View All");
-        JButton searchButton = new JButton("Search by Field");
-        JButton clearButton = new JButton("Clear");
+        fieldIdField = UITheme.createTextField();
+        dateField = UITheme.createTextField();
+        waterQuantityField = UITheme.createTextField();
+        searchFieldIdField = UITheme.createTextField();
+
+        fieldsGrid.add(UITheme.labeledField("Field ID", fieldIdField));
+        fieldsGrid.add(UITheme.labeledField("Date (YYYY-MM-DD)", dateField));
+        fieldsGrid.add(UITheme.labeledField("Water Quantity (liters)", waterQuantityField));
+        fieldsGrid.add(UITheme.labeledField("Search by Field ID", searchFieldIdField));
+
+        card.add(fieldsGrid, BorderLayout.CENTER);
+
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 15));
+        buttonPanel.setBackground(UITheme.CARD_BG);
+
+        JButton addButton = UITheme.createStyledButton("Add Irrigation Record", UITheme.PRIMARY);
+        JButton refreshButton = UITheme.createStyledButton("View All", UITheme.NEUTRAL);
+        JButton searchButton = UITheme.createStyledButton("Search by Field", UITheme.INFO);
+        JButton clearButton = UITheme.createStyledButton("Clear", UITheme.TEXT_LIGHT);
 
         buttonPanel.add(addButton);
         buttonPanel.add(refreshButton);
         buttonPanel.add(searchButton);
         buttonPanel.add(clearButton);
 
-        formPanel.add(buttonPanel);
-
-        tableModel = new DefaultTableModel(new Object[]{"Field ID", "Date", "Water Quantity"}, 0);
-        table = new JTable(tableModel);
-        JScrollPane scrollPane = new JScrollPane(table);
-
-        add(formPanel, BorderLayout.NORTH);
-        add(scrollPane, BorderLayout.CENTER);
+        card.add(buttonPanel, BorderLayout.SOUTH);
 
         addButton.addActionListener(e -> addIrrigation());
         refreshButton.addActionListener(e -> loadAllIrrigation());
         searchButton.addActionListener(e -> searchByField());
         clearButton.addActionListener(e -> clearForm());
 
-        loadAllIrrigation();
+        return card;
+    }
+
+    private JPanel buildTableCard() {
+        JPanel card = UITheme.createCardPanel();
+        card.setLayout(new BorderLayout());
+
+        card.add(UITheme.createCardTitle("Irrigation Records"), BorderLayout.NORTH);
+
+        tableModel = new DefaultTableModel(new Object[]{"Field ID", "Date", "Water Quantity"}, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+        table = new JTable(tableModel);
+        UITheme.styleTable(table);
+
+        JScrollPane scrollPane = new JScrollPane(table);
+        scrollPane.setBorder(BorderFactory.createLineBorder(UITheme.BORDER_COLOR));
+        card.add(scrollPane, BorderLayout.CENTER);
+
+        return card;
     }
 
     private void addIrrigation() {

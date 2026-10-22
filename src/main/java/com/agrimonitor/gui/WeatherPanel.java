@@ -28,18 +28,14 @@ public class WeatherPanel extends JPanel {
 
     public WeatherPanel() {
         weatherService = new WeatherService();
-        setLayout(new BorderLayout(15, 15));
-        setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
-
-        JLabel header = new JLabel("Weather Dashboard");
-        header.setFont(new Font("Arial", Font.BOLD, 20));
-        header.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
+        setLayout(new BorderLayout(0, 15));
+        setBackground(UITheme.BACKGROUND);
 
         mainCard = new JPanel(new BorderLayout(20, 10));
-        mainCard.setBackground(new Color(34, 87, 59));
+        mainCard.setBackground(UITheme.PRIMARY_DARK);
         mainCard.setBorder(BorderFactory.createEmptyBorder(25, 30, 25, 30));
 
-        iconLabel = new JLabel("?", SwingConstants.CENTER);
+        iconLabel = new JLabel("\u2600", SwingConstants.CENTER);
         iconLabel.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 80));
         iconLabel.setForeground(Color.WHITE);
         iconLabel.setPreferredSize(new Dimension(150, 150));
@@ -49,19 +45,19 @@ public class WeatherPanel extends JPanel {
         infoPanel.setOpaque(false);
 
         conditionLabel = new JLabel("No data yet");
-        conditionLabel.setFont(new Font("Arial", Font.BOLD, 26));
+        conditionLabel.setFont(new Font("Segoe UI", Font.BOLD, 26));
         conditionLabel.setForeground(Color.WHITE);
 
         temperatureLabel = new JLabel("Temperature: -- °C");
-        temperatureLabel.setFont(new Font("Arial", Font.PLAIN, 16));
+        temperatureLabel.setFont(UITheme.FONT_BODY);
         temperatureLabel.setForeground(Color.WHITE);
 
         humidityLabel = new JLabel("Humidity: -- %");
-        humidityLabel.setFont(new Font("Arial", Font.PLAIN, 16));
+        humidityLabel.setFont(UITheme.FONT_BODY);
         humidityLabel.setForeground(Color.WHITE);
 
         windLabel = new JLabel("Wind Speed: -- km/h");
-        windLabel.setFont(new Font("Arial", Font.PLAIN, 16));
+        windLabel.setFont(UITheme.FONT_BODY);
         windLabel.setForeground(Color.WHITE);
 
         infoPanel.add(conditionLabel);
@@ -75,49 +71,64 @@ public class WeatherPanel extends JPanel {
         mainCard.add(iconLabel, BorderLayout.WEST);
         mainCard.add(infoPanel, BorderLayout.CENTER);
 
-        JPanel controlPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        controlPanel.setBorder(BorderFactory.createTitledBorder("Weather Source"));
+        JPanel controlCard = UITheme.createCardPanel();
+        controlCard.setLayout(new FlowLayout(FlowLayout.LEFT, 10, 10));
 
-        JButton simulateButton = new JButton("Simulate Weather");
-        controlPanel.add(simulateButton);
+        JButton simulateButton = UITheme.createStyledButton("Simulate Weather", UITheme.PRIMARY);
+        controlCard.add(simulateButton);
 
-        controlPanel.add(new JLabel("     City:"));
-        cityField = new JTextField(15);
+        JLabel cityLabel = UITheme.createFormLabel("City:");
+        controlCard.add(Box.createRigidArea(new Dimension(15, 0)));
+        controlCard.add(cityLabel);
+
+        cityField = UITheme.createTextField();
+        cityField.setPreferredSize(new Dimension(150, 35));
         cityField.setText("Dhaka");
-        controlPanel.add(cityField);
+        controlCard.add(cityField);
 
-        JButton realWeatherButton = new JButton("Get Real Weather");
-        controlPanel.add(realWeatherButton);
+        JButton realWeatherButton = UITheme.createStyledButton("Get Real Weather", UITheme.INFO);
+        controlCard.add(realWeatherButton);
 
-        JPanel recommendationPanel = new JPanel(new BorderLayout());
-        recommendationPanel.setBorder(BorderFactory.createTitledBorder("Farming Recommendation"));
+        JPanel recommendationPanel = UITheme.createCardPanel();
+        recommendationPanel.setLayout(new BorderLayout());
+        recommendationPanel.add(UITheme.createCardTitle("Farming Recommendation"), BorderLayout.NORTH);
+
         recommendationArea = new JTextArea("Choose a weather source to get started.");
         recommendationArea.setEditable(false);
         recommendationArea.setLineWrap(true);
         recommendationArea.setWrapStyleWord(true);
-        recommendationArea.setFont(new Font("Arial", Font.PLAIN, 14));
-        recommendationArea.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        recommendationArea.setFont(UITheme.FONT_BODY);
         recommendationArea.setRows(3);
         recommendationPanel.add(recommendationArea, BorderLayout.CENTER);
 
-        historyModel = new DefaultTableModel(new Object[]{"Time", "Source", "Condition", "Temperature", "Humidity", "Wind Speed"}, 0);
+        JPanel historyCard = UITheme.createCardPanel();
+        historyCard.setLayout(new BorderLayout());
+        historyCard.add(UITheme.createCardTitle("Weather History"), BorderLayout.NORTH);
+
+        historyModel = new DefaultTableModel(new Object[]{"Time", "Source", "Condition", "Temperature", "Humidity", "Wind Speed"}, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
         historyTable = new JTable(historyModel);
-        historyTable.setRowHeight(24);
+        UITheme.styleTable(historyTable);
+
         JScrollPane historyScroll = new JScrollPane(historyTable);
-        historyScroll.setBorder(BorderFactory.createTitledBorder("Weather History"));
+        historyScroll.setBorder(BorderFactory.createLineBorder(UITheme.BORDER_COLOR));
+        historyCard.add(historyScroll, BorderLayout.CENTER);
 
-        JPanel centerPanel = new JPanel(new BorderLayout(10, 10));
+        JPanel centerPanel = new JPanel(new BorderLayout(0, 15));
+        centerPanel.setBackground(UITheme.BACKGROUND);
         centerPanel.add(recommendationPanel, BorderLayout.NORTH);
-        centerPanel.add(historyScroll, BorderLayout.CENTER);
+        centerPanel.add(historyCard, BorderLayout.CENTER);
 
-        JPanel northContainer = new JPanel(new BorderLayout());
-        JPanel topWrap = new JPanel();
-        topWrap.setLayout(new BoxLayout(topWrap, BoxLayout.Y_AXIS));
-        topWrap.add(header);
-        topWrap.add(mainCard);
-        topWrap.add(controlPanel);
-
-        northContainer.add(topWrap, BorderLayout.CENTER);
+        JPanel northContainer = new JPanel();
+        northContainer.setLayout(new BoxLayout(northContainer, BoxLayout.Y_AXIS));
+        northContainer.setBackground(UITheme.BACKGROUND);
+        northContainer.add(mainCard);
+        northContainer.add(Box.createRigidArea(new Dimension(0, 15)));
+        northContainer.add(controlCard);
 
         add(northContainer, BorderLayout.NORTH);
         add(centerPanel, BorderLayout.CENTER);

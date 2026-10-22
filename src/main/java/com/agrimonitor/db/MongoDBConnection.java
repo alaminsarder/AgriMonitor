@@ -9,13 +9,16 @@ public class MongoDBConnection {
     private static MongoClient mongoClient;
     private static MongoDatabase database;
 
-    private static final String CONNECTION_STRING = "mongodb://localhost:27017";
     private static final String DATABASE_NAME = "agrimonitor_db";
 
     public static MongoDatabase getDatabase() {
         if (database == null) {
             try {
-                mongoClient = MongoClients.create(CONNECTION_STRING);
+                String connectionString = System.getenv("MONGODB_URI");
+                if (connectionString == null || connectionString.isEmpty()) {
+                    connectionString = EnvLoader.get("MONGODB_URI");
+                }
+                mongoClient = MongoClients.create(connectionString);
                 database = mongoClient.getDatabase(DATABASE_NAME);
                 System.out.println("Connected to MongoDB: " + DATABASE_NAME);
             } catch (Exception e) {

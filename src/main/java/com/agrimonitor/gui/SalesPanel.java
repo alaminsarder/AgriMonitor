@@ -21,70 +21,97 @@ public class SalesPanel extends JPanel {
     public SalesPanel() {
         salesDAO = new SalesDAO();
         cropDAO = new CropDAO();
-        setLayout(new BorderLayout(10, 10));
-        setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        setLayout(new BorderLayout(0, 15));
+        setBackground(UITheme.BACKGROUND);
 
-        JPanel formPanel = new JPanel(new GridLayout(8, 2, 10, 10));
-        formPanel.setBorder(BorderFactory.createTitledBorder("Sales Information"));
+        add(buildFormCard(), BorderLayout.NORTH);
+        add(buildTableCard(), BorderLayout.CENTER);
 
-        formPanel.add(new JLabel("Crop ID:"));
-        cropIdField = new JTextField();
-        formPanel.add(cropIdField);
+        loadAllSales();
+    }
 
-        formPanel.add(new JLabel("Crop Name:"));
-        cropNameField = new JTextField();
-        formPanel.add(cropNameField);
+    private JPanel buildFormCard() {
+        JPanel card = UITheme.createCardPanel();
+        card.setLayout(new BorderLayout());
 
-        formPanel.add(new JLabel("Quantity Sold:"));
-        quantitySoldField = new JTextField();
-        formPanel.add(quantitySoldField);
+        card.add(UITheme.createCardTitle("Sales Information"), BorderLayout.NORTH);
 
-        formPanel.add(new JLabel("Selling Price Per Unit:"));
-        priceField = new JTextField();
-        formPanel.add(priceField);
+        JPanel fieldsGrid = new JPanel(new GridLayout(2, 4, 15, 12));
+        fieldsGrid.setBackground(UITheme.CARD_BG);
 
-        formPanel.add(new JLabel("Selling Date (YYYY-MM-DD):"));
-        dateField = new JTextField();
-        formPanel.add(dateField);
+        cropIdField = UITheme.createTextField();
+        cropNameField = UITheme.createTextField();
+        quantitySoldField = UITheme.createTextField();
+        priceField = UITheme.createTextField();
+        dateField = UITheme.createTextField();
+        buyerField = UITheme.createTextField();
+        searchCropIdField = UITheme.createTextField();
 
-        formPanel.add(new JLabel("Buyer Information:"));
-        buyerField = new JTextField();
-        formPanel.add(buyerField);
+        fieldsGrid.add(UITheme.labeledField("Crop ID", cropIdField));
+        fieldsGrid.add(UITheme.labeledField("Crop Name", cropNameField));
+        fieldsGrid.add(UITheme.labeledField("Quantity Sold", quantitySoldField));
+        fieldsGrid.add(UITheme.labeledField("Selling Price Per Unit", priceField));
+        fieldsGrid.add(UITheme.labeledField("Selling Date (YYYY-MM-DD)", dateField));
+        fieldsGrid.add(UITheme.labeledField("Buyer Information", buyerField));
+        fieldsGrid.add(UITheme.labeledField("Search Total Sales by Crop ID", searchCropIdField));
 
-        formPanel.add(new JLabel("Search Total Sales by Crop ID:"));
-        searchCropIdField = new JTextField();
-        formPanel.add(searchCropIdField);
+        card.add(fieldsGrid, BorderLayout.CENTER);
 
-        JPanel buttonPanel = new JPanel(new FlowLayout());
-        JButton addButton = new JButton("Add Sales Record");
-        JButton refreshButton = new JButton("View All");
-        JButton searchButton = new JButton("Get Total Sales");
-        JButton clearButton = new JButton("Clear");
+        JPanel bottomPanel = new JPanel();
+        bottomPanel.setLayout(new BoxLayout(bottomPanel, BoxLayout.Y_AXIS));
+        bottomPanel.setBackground(UITheme.CARD_BG);
+
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 15));
+        buttonPanel.setBackground(UITheme.CARD_BG);
+
+        JButton addButton = UITheme.createStyledButton("Add Sales Record", UITheme.PRIMARY);
+        JButton refreshButton = UITheme.createStyledButton("View All", UITheme.NEUTRAL);
+        JButton searchButton = UITheme.createStyledButton("Get Total Sales", UITheme.INFO);
+        JButton clearButton = UITheme.createStyledButton("Clear", UITheme.TEXT_LIGHT);
 
         buttonPanel.add(addButton);
         buttonPanel.add(refreshButton);
         buttonPanel.add(searchButton);
         buttonPanel.add(clearButton);
 
-        formPanel.add(buttonPanel);
-
         totalLabel = new JLabel(" ");
-        totalLabel.setFont(new Font("Arial", Font.BOLD, 14));
-        formPanel.add(totalLabel);
+        totalLabel.setFont(UITheme.FONT_SUBHEADER);
+        totalLabel.setForeground(UITheme.SUCCESS);
+        totalLabel.setBorder(BorderFactory.createEmptyBorder(0, 10, 0, 0));
 
-        tableModel = new DefaultTableModel(new Object[]{"Crop ID", "Crop Name", "Qty Sold", "Price/Unit", "Total", "Date", "Buyer"}, 0);
-        table = new JTable(tableModel);
-        JScrollPane scrollPane = new JScrollPane(table);
+        bottomPanel.add(buttonPanel);
+        bottomPanel.add(totalLabel);
 
-        add(formPanel, BorderLayout.NORTH);
-        add(scrollPane, BorderLayout.CENTER);
+        card.add(bottomPanel, BorderLayout.SOUTH);
 
         addButton.addActionListener(e -> addSale());
         refreshButton.addActionListener(e -> loadAllSales());
         searchButton.addActionListener(e -> getTotalSales());
         clearButton.addActionListener(e -> clearForm());
 
-        loadAllSales();
+        return card;
+    }
+
+    private JPanel buildTableCard() {
+        JPanel card = UITheme.createCardPanel();
+        card.setLayout(new BorderLayout());
+
+        card.add(UITheme.createCardTitle("All Sales Records"), BorderLayout.NORTH);
+
+        tableModel = new DefaultTableModel(new Object[]{"Crop ID", "Crop Name", "Qty Sold", "Price/Unit", "Total", "Date", "Buyer"}, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+        table = new JTable(tableModel);
+        UITheme.styleTable(table);
+
+        JScrollPane scrollPane = new JScrollPane(table);
+        scrollPane.setBorder(BorderFactory.createLineBorder(UITheme.BORDER_COLOR));
+        card.add(scrollPane, BorderLayout.CENTER);
+
+        return card;
     }
 
     private void addSale() {
