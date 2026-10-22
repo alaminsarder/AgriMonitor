@@ -17,21 +17,20 @@ AgriMonitor is a Java-based desktop application with a MongoDB backend that help
 
 ### Main Dashboard
 
-<img width="1088" height="640" alt="Screenshot_1" src="https://github.com/user-attachments/assets/b7ea6f85-478e-4c8d-8779-76c0ce9fe388" />
+
 
 
 
 ### Sales Management
 
-<img width="1088" height="640" alt="Screenshot_2" src="https://github.com/user-attachments/assets/df4fc771-a871-4ac0-8fc0-a76488dca580" />
+
 
 
 ### Profit Loss Calculation
-<img width="1084" height="643" alt="profitloss" src="https://github.com/user-attachments/assets/3bf33c7b-bd54-471f-b72e-dc280c6eb05b" />
+
 
 
 ### Report Generation
-<img width="1084" height="643" alt="image" src="https://github.com/user-attachments/assets/38bebb2c-0deb-40e4-a1fc-4862c105ec2a" />
 
 ## Tech Stack
 
