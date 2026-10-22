@@ -1,28 +1,34 @@
 # AgriMonitor – Smart Agricultural Monitoring System
 
-AgriMonitor is a Java-based desktop application with a MongoDB Atlas (cloud) backend that helps farmers and farm supervisors manage field, crop, irrigation, pesticide, cost, sales, and profit-related information through an easy-to-use GUI built with Java Swing.
+AgriMonitor is a Java-based desktop application with a MongoDB backend that helps farmers and farm supervisors manage field, crop, irrigation, pesticide, cost, sales, and profit-related information through an easy-to-use GUI built with Java Swing.
 
 ## Features
 
-- User Login & Registration (each user's data is kept private and isolated)
 - Field and Crop Management
 - Irrigation Record Tracking
 - Pesticide Usage Log
 - Cost and Sales Management
 - Automatic Profit/Loss Calculation
-- Weather Simulation with real-time OpenWeatherMap data
+- Weather Simulation
 - Report Generation
-- Persistent Data Storage with MongoDB Atlas (cloud database)
+- Persistent Data Storage with MongoDB
 
 ## Screenshots
 
-### Login / Register
-
 ### Main Dashboard
+
+
+
+
 
 ### Sales Management
 
+
+
+
 ### Profit Loss Calculation
+
+
 
 ### Report Generation
 
@@ -30,9 +36,8 @@ AgriMonitor is a Java-based desktop application with a MongoDB Atlas (cloud) bac
 
 - Language: Core Java
 - GUI: Java Swing
-- Database: MongoDB Atlas (Cloud)
+- Database: MongoDB
 - Database Connectivity: MongoDB Java Driver
-- Weather API: OpenWeatherMap
 
 ## Project Structure
 
@@ -41,21 +46,32 @@ AgriMonitor/
 - dao: MongoDB CRUD operations
 - service: Business logic for Profit/Loss, Weather, and Reports
 - gui: Swing based user interface
-- session: Logged-in user session management
-- util: Password hashing and environment config loading
 - Main.java: Application entry point
 
 ## How to Run
 
-### Option 1: Download the Installer (Recommended)
-
-1. Go to the [Releases](https://github.com/alaminsarder/AgriMonitor/releases) page
-2. Download the latest `AgriMonitor-x.x.x.exe`
-3. Run the installer and follow the setup steps
-4. Launch AgriMonitor from the Desktop/Start Menu shortcut
-5. Register a new account and start using the app
-
-### Option 2: Build from Source
-
-1. Install JDK 8 or higher
+1. Install JDK 8 or higher and MongoDB
 2. Clone the repository
+   git clone https://github.com/alaminsarder/AgriMonitor.git
+3. Make sure MongoDB service is running
+4. Compile the project
+   javac -cp "libs/*" -d out -encoding UTF-8 src/main/java/com/agrimonitor/*.java src/main/java/com/agrimonitor/*/*.java
+5. ### 5. Run the Application
+
+Copy and run the following command:
+
+java -cp "out;libs/*" com.agrimonitor.Main
+
+
+
+## Project Team
+
+Md. Samiul Mia - Roll 01 - ID 0322410105101001
+
+Md Hasan Ruhanee Ruhan - Roll 10 - ID 0322410105101010
+
+Md AL Amin Sarder - Roll 11 - ID 0322410105101011
+
+## License
+
+This project is developed for academic purposes.
