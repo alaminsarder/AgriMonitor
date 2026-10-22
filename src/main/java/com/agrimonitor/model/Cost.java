@@ -6,6 +6,7 @@ public class Cost {
     private String description;
     private double amount;
     private String date;
+    private String userId;
 
     public Cost(String cropId, String fieldId, String description, double amount, String date) {
         this.cropId = cropId;
@@ -20,6 +21,9 @@ public class Cost {
     public String getDescription() { return description; }
     public double getAmount() { return amount; }
     public String getDate() { return date; }
+
+    public String getUserId() { return userId; }
+    public void setUserId(String userId) { this.userId = userId; }
 
     @Override
     public String toString() {

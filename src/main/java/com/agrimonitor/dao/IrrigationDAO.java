@@ -2,10 +2,12 @@ package com.agrimonitor.dao;
 
 import com.agrimonitor.db.MongoDBConnection;
 import com.agrimonitor.model.Irrigation;
+import com.agrimonitor.session.Session;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.model.Filters;
 import org.bson.Document;
+import org.bson.conversions.Bson;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,7 +24,8 @@ public class IrrigationDAO {
         try {
             Document doc = new Document("fieldId", irrigation.getFieldId())
                     .append("irrigationDate", irrigation.getIrrigationDate())
-                    .append("waterQuantity", irrigation.getWaterQuantity());
+                    .append("waterQuantity", irrigation.getWaterQuantity())
+                    .append("userId", Session.getUserId());
             collection.insertOne(doc);
             return true;
         } catch (Exception e) {
@@ -33,7 +36,8 @@ public class IrrigationDAO {
 
     public List<Irrigation> getAllIrrigations() {
         List<Irrigation> list = new ArrayList<>();
-        MongoCursor<Document> cursor = collection.find().iterator();
+        Bson filter = Filters.eq("userId", Session.getUserId());
+        MongoCursor<Document> cursor = collection.find(filter).iterator();
         try {
             while (cursor.hasNext()) {
                 Document doc = cursor.next();
@@ -42,6 +46,7 @@ public class IrrigationDAO {
                         doc.getString("irrigationDate"),
                         doc.getDouble("waterQuantity")
                 );
+                irrigation.setUserId(doc.getString("userId"));
                 list.add(irrigation);
             }
         } finally {
@@ -52,7 +57,11 @@ public class IrrigationDAO {
 
     public List<Irrigation> getIrrigationByFieldId(String fieldId) {
         List<Irrigation> list = new ArrayList<>();
-        MongoCursor<Document> cursor = collection.find(Filters.eq("fieldId", fieldId)).iterator();
+        Bson filter = Filters.and(
+                Filters.eq("fieldId", fieldId),
+                Filters.eq("userId", Session.getUserId())
+        );
+        MongoCursor<Document> cursor = collection.find(filter).iterator();
         try {
             while (cursor.hasNext()) {
                 Document doc = cursor.next();
@@ -61,6 +70,7 @@ public class IrrigationDAO {
                         doc.getString("irrigationDate"),
                         doc.getDouble("waterQuantity")
                 );
+                irrigation.setUserId(doc.getString("userId"));
                 list.add(irrigation);
             }
         } finally {

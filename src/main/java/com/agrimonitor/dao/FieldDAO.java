@@ -2,12 +2,14 @@ package com.agrimonitor.dao;
 
 import com.agrimonitor.db.MongoDBConnection;
 import com.agrimonitor.model.Field;
+import com.agrimonitor.session.Session;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.Updates;
 import com.mongodb.client.result.DeleteResult;
 import org.bson.Document;
+import org.bson.conversions.Bson;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,7 +27,8 @@ public class FieldDAO {
             Document doc = new Document("fieldId", field.getFieldId())
                     .append("fieldName", field.getFieldName())
                     .append("location", field.getLocation())
-                    .append("areaSize", field.getAreaSize());
+                    .append("areaSize", field.getAreaSize())
+                    .append("userId", Session.getUserId());
             collection.insertOne(doc);
             return true;
         } catch (Exception e) {
@@ -36,7 +39,8 @@ public class FieldDAO {
 
     public List<Field> getAllFields() {
         List<Field> fields = new ArrayList<>();
-        MongoCursor<Document> cursor = collection.find().iterator();
+        Bson filter = Filters.eq("userId", Session.getUserId());
+        MongoCursor<Document> cursor = collection.find(filter).iterator();
         try {
             while (cursor.hasNext()) {
                 Document doc = cursor.next();
@@ -46,6 +50,7 @@ public class FieldDAO {
                         doc.getString("location"),
                         doc.getDouble("areaSize")
                 );
+                field.setUserId(doc.getString("userId"));
                 fields.add(field);
             }
         } finally {
@@ -55,22 +60,32 @@ public class FieldDAO {
     }
 
     public Field getFieldById(String fieldId) {
-        Document doc = collection.find(Filters.eq("fieldId", fieldId)).first();
+        Bson filter = Filters.and(
+                Filters.eq("fieldId", fieldId),
+                Filters.eq("userId", Session.getUserId())
+        );
+        Document doc = collection.find(filter).first();
         if (doc != null) {
-            return new Field(
+            Field field = new Field(
                     doc.getString("fieldId"),
                     doc.getString("fieldName"),
                     doc.getString("location"),
                     doc.getDouble("areaSize")
             );
+            field.setUserId(doc.getString("userId"));
+            return field;
         }
         return null;
     }
 
     public boolean updateField(String fieldId, String fieldName, String location, double areaSize) {
         try {
-            collection.updateOne(
+            Bson filter = Filters.and(
                     Filters.eq("fieldId", fieldId),
+                    Filters.eq("userId", Session.getUserId())
+            );
+            collection.updateOne(
+                    filter,
                     Updates.combine(
                             Updates.set("fieldName", fieldName),
                             Updates.set("location", location),
@@ -85,11 +100,19 @@ public class FieldDAO {
     }
 
     public boolean deleteField(String fieldId) {
-        DeleteResult result = collection.deleteOne(Filters.eq("fieldId", fieldId));
+        Bson filter = Filters.and(
+                Filters.eq("fieldId", fieldId),
+                Filters.eq("userId", Session.getUserId())
+        );
+        DeleteResult result = collection.deleteOne(filter);
         return result.getDeletedCount() > 0;
     }
 
     public boolean fieldExists(String fieldId) {
-        return collection.find(Filters.eq("fieldId", fieldId)).first() != null;
+        Bson filter = Filters.and(
+                Filters.eq("fieldId", fieldId),
+                Filters.eq("userId", Session.getUserId())
+        );
+        return collection.find(filter).first() != null;
     }
 }

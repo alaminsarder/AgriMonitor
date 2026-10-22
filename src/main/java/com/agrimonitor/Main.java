@@ -1,17 +1,12 @@
 package com.agrimonitor;
 
-import com.agrimonitor.db.MongoDBConnection;
-import com.agrimonitor.gui.MainFrame;
-
-import javax.swing.*;
+import com.agrimonitor.gui.LoginFrame;
+import javax.swing.SwingUtilities;
 
 public class Main {
-
     public static void main(String[] args) {
-        MongoDBConnection.getDatabase();
-
         SwingUtilities.invokeLater(() -> {
-            MainFrame frame = new MainFrame();
+            LoginFrame frame = new LoginFrame();
             frame.setVisible(true);
         });
     }

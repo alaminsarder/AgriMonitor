@@ -5,6 +5,7 @@ public class Field {
     private String fieldName;
     private String location;
     private double areaSize;
+    private String userId;
 
     public Field(String fieldId, String fieldName, String location, double areaSize) {
         this.fieldId = fieldId;
@@ -24,6 +25,9 @@ public class Field {
 
     public double getAreaSize() { return areaSize; }
     public void setAreaSize(double areaSize) { this.areaSize = areaSize; }
+
+    public String getUserId() { return userId; }
+    public void setUserId(String userId) { this.userId = userId; }
 
     @Override
     public String toString() {

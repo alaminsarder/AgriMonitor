@@ -6,6 +6,7 @@ public class Crop {
     private String cropType;
     private int growthDuration;
     private String fieldId;
+    private String userId;
 
     public Crop(String cropId, String cropName, String cropType, int growthDuration, String fieldId) {
         this.cropId = cropId;
@@ -29,6 +30,9 @@ public class Crop {
 
     public String getFieldId() { return fieldId; }
     public void setFieldId(String fieldId) { this.fieldId = fieldId; }
+
+    public String getUserId() { return userId; }
+    public void setUserId(String userId) { this.userId = userId; }
 
     @Override
     public String toString() {

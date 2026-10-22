@@ -2,11 +2,13 @@ package com.agrimonitor.dao;
 
 import com.agrimonitor.db.MongoDBConnection;
 import com.agrimonitor.model.Crop;
+import com.agrimonitor.session.Session;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.Updates;
 import org.bson.Document;
+import org.bson.conversions.Bson;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,7 +27,8 @@ public class CropDAO {
                     .append("cropName", crop.getCropName())
                     .append("cropType", crop.getCropType())
                     .append("growthDuration", crop.getGrowthDuration())
-                    .append("fieldId", crop.getFieldId());
+                    .append("fieldId", crop.getFieldId())
+                    .append("userId", Session.getUserId());
             collection.insertOne(doc);
             return true;
         } catch (Exception e) {
@@ -36,7 +39,8 @@ public class CropDAO {
 
     public List<Crop> getAllCrops() {
         List<Crop> crops = new ArrayList<>();
-        MongoCursor<Document> cursor = collection.find().iterator();
+        Bson filter = Filters.eq("userId", Session.getUserId());
+        MongoCursor<Document> cursor = collection.find(filter).iterator();
         try {
             while (cursor.hasNext()) {
                 Document doc = cursor.next();
@@ -47,6 +51,7 @@ public class CropDAO {
                         doc.getInteger("growthDuration"),
                         doc.getString("fieldId")
                 );
+                crop.setUserId(doc.getString("userId"));
                 crops.add(crop);
             }
         } finally {
@@ -56,23 +61,33 @@ public class CropDAO {
     }
 
     public Crop getCropById(String cropId) {
-        Document doc = collection.find(Filters.eq("cropId", cropId)).first();
+        Bson filter = Filters.and(
+                Filters.eq("cropId", cropId),
+                Filters.eq("userId", Session.getUserId())
+        );
+        Document doc = collection.find(filter).first();
         if (doc != null) {
-            return new Crop(
+            Crop crop = new Crop(
                     doc.getString("cropId"),
                     doc.getString("cropName"),
                     doc.getString("cropType"),
                     doc.getInteger("growthDuration"),
                     doc.getString("fieldId")
             );
+            crop.setUserId(doc.getString("userId"));
+            return crop;
         }
         return null;
     }
 
     public boolean updateCrop(String cropId, String cropName, String cropType, int growthDuration) {
         try {
-            collection.updateOne(
+            Bson filter = Filters.and(
                     Filters.eq("cropId", cropId),
+                    Filters.eq("userId", Session.getUserId())
+            );
+            collection.updateOne(
+                    filter,
                     Updates.combine(
                             Updates.set("cropName", cropName),
                             Updates.set("cropType", cropType),
@@ -87,6 +102,10 @@ public class CropDAO {
     }
 
     public boolean cropExists(String cropId) {
-        return collection.find(Filters.eq("cropId", cropId)).first() != null;
+        Bson filter = Filters.and(
+                Filters.eq("cropId", cropId),
+                Filters.eq("userId", Session.getUserId())
+        );
+        return collection.find(filter).first() != null;
     }
 }

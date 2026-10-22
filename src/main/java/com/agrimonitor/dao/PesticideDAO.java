@@ -2,10 +2,12 @@ package com.agrimonitor.dao;
 
 import com.agrimonitor.db.MongoDBConnection;
 import com.agrimonitor.model.Pesticide;
+import com.agrimonitor.session.Session;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.model.Filters;
 import org.bson.Document;
+import org.bson.conversions.Bson;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,7 +25,8 @@ public class PesticideDAO {
             Document doc = new Document("fieldId", pesticide.getFieldId())
                     .append("pesticideName", pesticide.getPesticideName())
                     .append("quantity", pesticide.getQuantity())
-                    .append("applicationDate", pesticide.getApplicationDate());
+                    .append("applicationDate", pesticide.getApplicationDate())
+                    .append("userId", Session.getUserId());
             collection.insertOne(doc);
             return true;
         } catch (Exception e) {
@@ -34,7 +37,8 @@ public class PesticideDAO {
 
     public List<Pesticide> getAllPesticides() {
         List<Pesticide> list = new ArrayList<>();
-        MongoCursor<Document> cursor = collection.find().iterator();
+        Bson filter = Filters.eq("userId", Session.getUserId());
+        MongoCursor<Document> cursor = collection.find(filter).iterator();
         try {
             while (cursor.hasNext()) {
                 Document doc = cursor.next();
@@ -44,6 +48,7 @@ public class PesticideDAO {
                         doc.getDouble("quantity"),
                         doc.getString("applicationDate")
                 );
+                pesticide.setUserId(doc.getString("userId"));
                 list.add(pesticide);
             }
         } finally {
@@ -54,7 +59,11 @@ public class PesticideDAO {
 
     public List<Pesticide> getPesticideByFieldId(String fieldId) {
         List<Pesticide> list = new ArrayList<>();
-        MongoCursor<Document> cursor = collection.find(Filters.eq("fieldId", fieldId)).iterator();
+        Bson filter = Filters.and(
+                Filters.eq("fieldId", fieldId),
+                Filters.eq("userId", Session.getUserId())
+        );
+        MongoCursor<Document> cursor = collection.find(filter).iterator();
         try {
             while (cursor.hasNext()) {
                 Document doc = cursor.next();
@@ -64,6 +73,7 @@ public class PesticideDAO {
                         doc.getDouble("quantity"),
                         doc.getString("applicationDate")
                 );
+                pesticide.setUserId(doc.getString("userId"));
                 list.add(pesticide);
             }
         } finally {

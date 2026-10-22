@@ -5,6 +5,7 @@ public class Pesticide {
     private String pesticideName;
     private double quantity;
     private String applicationDate;
+    private String userId;
 
     public Pesticide(String fieldId, String pesticideName, double quantity, String applicationDate) {
         this.fieldId = fieldId;
@@ -17,6 +18,9 @@ public class Pesticide {
     public String getPesticideName() { return pesticideName; }
     public double getQuantity() { return quantity; }
     public String getApplicationDate() { return applicationDate; }
+
+    public String getUserId() { return userId; }
+    public void setUserId(String userId) { this.userId = userId; }
 
     @Override
     public String toString() {

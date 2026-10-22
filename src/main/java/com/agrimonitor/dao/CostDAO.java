@@ -2,10 +2,12 @@ package com.agrimonitor.dao;
 
 import com.agrimonitor.db.MongoDBConnection;
 import com.agrimonitor.model.Cost;
+import com.agrimonitor.session.Session;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.model.Filters;
 import org.bson.Document;
+import org.bson.conversions.Bson;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -26,7 +28,8 @@ public class CostDAO {
                     .append("fieldId", cost.getFieldId())
                     .append("description", cost.getDescription())
                     .append("amount", cost.getAmount())
-                    .append("date", cost.getDate());
+                    .append("date", cost.getDate())
+                    .append("userId", Session.getUserId());
             collection.insertOne(doc);
             return true;
         } catch (Exception e) {
@@ -37,7 +40,8 @@ public class CostDAO {
 
     public List<Cost> getAllCosts() {
         List<Cost> list = new ArrayList<>();
-        MongoCursor<Document> cursor = collection.find().iterator();
+        Bson filter = Filters.eq("userId", Session.getUserId());
+        MongoCursor<Document> cursor = collection.find(filter).iterator();
         try {
             while (cursor.hasNext()) {
                 Document doc = cursor.next();
@@ -48,6 +52,7 @@ public class CostDAO {
                         doc.getDouble("amount"),
                         doc.getString("date")
                 );
+                cost.setUserId(doc.getString("userId"));
                 list.add(cost);
             }
         } finally {
@@ -58,7 +63,11 @@ public class CostDAO {
 
     public double getTotalCostByCropId(String cropId) {
         double total = 0.0;
-        MongoCursor<Document> cursor = collection.find(Filters.eq("cropId", cropId)).iterator();
+        Bson filter = Filters.and(
+                Filters.eq("cropId", cropId),
+                Filters.eq("userId", Session.getUserId())
+        );
+        MongoCursor<Document> cursor = collection.find(filter).iterator();
         try {
             while (cursor.hasNext()) {
                 Document doc = cursor.next();
@@ -72,7 +81,8 @@ public class CostDAO {
 
     public double getTotalCostAll() {
         double total = 0.0;
-        MongoCursor<Document> cursor = collection.find().iterator();
+        Bson filter = Filters.eq("userId", Session.getUserId());
+        MongoCursor<Document> cursor = collection.find(filter).iterator();
         try {
             while (cursor.hasNext()) {
                 Document doc = cursor.next();
@@ -86,7 +96,8 @@ public class CostDAO {
 
     public Map<String, Double> getCostBreakdownByCategory() {
         Map<String, Double> breakdown = new LinkedHashMap<>();
-        MongoCursor<Document> cursor = collection.find().iterator();
+        Bson filter = Filters.eq("userId", Session.getUserId());
+        MongoCursor<Document> cursor = collection.find(filter).iterator();
         try {
             while (cursor.hasNext()) {
                 Document doc = cursor.next();

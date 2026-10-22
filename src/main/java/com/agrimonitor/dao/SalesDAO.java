@@ -2,10 +2,12 @@ package com.agrimonitor.dao;
 
 import com.agrimonitor.db.MongoDBConnection;
 import com.agrimonitor.model.Sales;
+import com.agrimonitor.session.Session;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.model.Filters;
 import org.bson.Document;
+import org.bson.conversions.Bson;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,7 +28,8 @@ public class SalesDAO {
                     .append("sellingPricePerUnit", sale.getSellingPricePerUnit())
                     .append("totalSales", sale.getTotalSales())
                     .append("sellingDate", sale.getSellingDate())
-                    .append("buyerInfo", sale.getBuyerInfo());
+                    .append("buyerInfo", sale.getBuyerInfo())
+                    .append("userId", Session.getUserId());
             collection.insertOne(doc);
             return true;
         } catch (Exception e) {
@@ -37,7 +40,8 @@ public class SalesDAO {
 
     public List<Sales> getAllSales() {
         List<Sales> list = new ArrayList<>();
-        MongoCursor<Document> cursor = collection.find().iterator();
+        Bson filter = Filters.eq("userId", Session.getUserId());
+        MongoCursor<Document> cursor = collection.find(filter).iterator();
         try {
             while (cursor.hasNext()) {
                 Document doc = cursor.next();
@@ -49,6 +53,7 @@ public class SalesDAO {
                         doc.getString("sellingDate"),
                         doc.getString("buyerInfo")
                 );
+                sale.setUserId(doc.getString("userId"));
                 list.add(sale);
             }
         } finally {
@@ -59,7 +64,11 @@ public class SalesDAO {
 
     public double getTotalSalesByCropId(String cropId) {
         double total = 0.0;
-        MongoCursor<Document> cursor = collection.find(Filters.eq("cropId", cropId)).iterator();
+        Bson filter = Filters.and(
+                Filters.eq("cropId", cropId),
+                Filters.eq("userId", Session.getUserId())
+        );
+        MongoCursor<Document> cursor = collection.find(filter).iterator();
         try {
             while (cursor.hasNext()) {
                 Document doc = cursor.next();
@@ -73,7 +82,8 @@ public class SalesDAO {
 
     public double getTotalSalesAll() {
         double total = 0.0;
-        MongoCursor<Document> cursor = collection.find().iterator();
+        Bson filter = Filters.eq("userId", Session.getUserId());
+        MongoCursor<Document> cursor = collection.find(filter).iterator();
         try {
             while (cursor.hasNext()) {
                 Document doc = cursor.next();

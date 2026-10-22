@@ -170,6 +170,36 @@ public class UITheme {
         return new StyledTextField();
     }
 
+    static class StyledPasswordField extends JPasswordField {
+        StyledPasswordField() {
+            super();
+            setFont(new Font("Segoe UI", Font.PLAIN, 14));
+            setBackground(Color.WHITE);
+            applyIdleBorder();
+            addFocusListener(new FocusAdapter() {
+                public void focusGained(FocusEvent e) {
+                    setBorder(BorderFactory.createCompoundBorder(
+                            BorderFactory.createLineBorder(PRIMARY, 2, true),
+                            BorderFactory.createEmptyBorder(7, 9, 7, 9)));
+                }
+
+                public void focusLost(FocusEvent e) {
+                    applyIdleBorder();
+                }
+            });
+        }
+
+        private void applyIdleBorder() {
+            setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(BORDER_COLOR, 1, true),
+                    BorderFactory.createEmptyBorder(8, 10, 8, 10)));
+        }
+    }
+
+    public static JPasswordField createPasswordField() {
+        return new StyledPasswordField();
+    }
+
     public static JLabel createFormLabel(String text) {
         JLabel label = new JLabel(text);
         label.setFont(new Font("Segoe UI", Font.BOLD, 12));

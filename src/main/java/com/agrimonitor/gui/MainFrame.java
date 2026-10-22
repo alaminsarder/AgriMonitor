@@ -1,5 +1,7 @@
 package com.agrimonitor.gui;
 
+import com.agrimonitor.session.Session;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
@@ -57,7 +59,21 @@ public class MainFrame extends JFrame {
         logoPanel.add(subLabel);
 
         sidebarPanel.add(logoPanel);
-        sidebarPanel.add(Box.createRigidArea(new Dimension(0, 10)));
+
+        JPanel userPanel = new JPanel();
+        userPanel.setLayout(new BoxLayout(userPanel, BoxLayout.Y_AXIS));
+        userPanel.setBackground(UITheme.SIDEBAR_BG);
+        userPanel.setMaximumSize(new Dimension(230, 50));
+        userPanel.setBorder(new EmptyBorder(10, 20, 10, 20));
+
+        JLabel userLabel = new JLabel("\uD83D\uDC64 " + Session.getUsername());
+        userLabel.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        userLabel.setForeground(UITheme.PRIMARY_LIGHT);
+        userLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        userPanel.add(userLabel);
+        sidebarPanel.add(userPanel);
+        sidebarPanel.add(Box.createRigidArea(new Dimension(0, 5)));
 
         String[] menuItems = {
             "Field Management",
@@ -83,6 +99,12 @@ public class MainFrame extends JFrame {
         sidebarButtons.get(0).setSelected(true);
 
         sidebarPanel.add(Box.createVerticalGlue());
+
+        UITheme.SidebarButton logoutBtn = UITheme.createSidebarButton("\u21AA  Logout");
+        logoutBtn.setAlignmentX(Component.LEFT_ALIGNMENT);
+        logoutBtn.setMaximumSize(new Dimension(230, 48));
+        logoutBtn.addActionListener(e -> handleLogout());
+        sidebarPanel.add(logoutBtn);
 
         UITheme.SidebarButton exitBtn = UITheme.createSidebarButton("\u23FB  Exit");
         exitBtn.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -142,6 +164,15 @@ public class MainFrame extends JFrame {
 
         for (UITheme.SidebarButton btn : sidebarButtons) {
             btn.setSelected(btn == clicked);
+        }
+    }
+
+    private void handleLogout() {
+        int confirm = JOptionPane.showConfirmDialog(this, "Are you sure you want to logout?", "Confirm Logout", JOptionPane.YES_NO_OPTION);
+        if (confirm == JOptionPane.YES_OPTION) {
+            Session.logout();
+            dispose();
+            SwingUtilities.invokeLater(() -> new LoginFrame().setVisible(true));
         }
     }
 }

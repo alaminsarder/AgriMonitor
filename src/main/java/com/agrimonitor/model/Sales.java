@@ -7,6 +7,7 @@ public class Sales {
     private double sellingPricePerUnit;
     private String sellingDate;
     private String buyerInfo;
+    private String userId;
 
     public Sales(String cropId, String cropName, double quantitySold,
                  double sellingPricePerUnit, String sellingDate, String buyerInfo) {
@@ -24,6 +25,9 @@ public class Sales {
     public double getSellingPricePerUnit() { return sellingPricePerUnit; }
     public String getSellingDate() { return sellingDate; }
     public String getBuyerInfo() { return buyerInfo; }
+
+    public String getUserId() { return userId; }
+    public void setUserId(String userId) { this.userId = userId; }
 
     public double getTotalSales() {
         return quantitySold * sellingPricePerUnit;
