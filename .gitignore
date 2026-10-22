@@ -1,2 +1,8 @@
 .env
 out/.env
+.env
+out/
+fatjar/
+jpackage-input/
+dist/
+target/
