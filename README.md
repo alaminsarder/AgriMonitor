@@ -18,22 +18,9 @@ The system provides user authentication, agricultural record management, automat
 - Persistent Data Storage with MongoDB Atlas (Cloud Database)
 - Easy-to-Use Java Swing GUI
 
-## Screenshots
+## Video
 
-### Login / Register
-<!-- Add login and registration screenshots here -->
-
-### Main Dashboard
-<!-- Add dashboard screenshot here -->
-
-### Sales Management
-<!-- Add sales management screenshot here -->
-
-### Profit/Loss Calculation
-<!-- Add profit/loss screenshot here -->
-
-### Report Generation
-<!-- Add report generation screenshot here -->
+https://youtu.be/q4gzZgC-xmY
 
 ## Tech Stack
 
