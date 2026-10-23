@@ -19,8 +19,7 @@ The system provides user authentication, agricultural record management, automat
 - Easy-to-Use Java Swing GUI
 
 ## Video
-
-https://youtu.be/q4gzZgC-xmY
+https://youtu.be/H7u584VSkHY
 
 ## Tech Stack
 
