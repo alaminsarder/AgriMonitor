@@ -6,7 +6,9 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class MainFrame extends JFrame {
 
@@ -14,12 +16,13 @@ public class MainFrame extends JFrame {
     private JPanel contentPanel;
     private JLabel titleLabel;
     private List<UITheme.SidebarButton> sidebarButtons = new ArrayList<>();
+    private Map<String, UITheme.SidebarButton> buttonsByName = new HashMap<>();
 
     public MainFrame() {
         setTitle("AgriMonitor - Smart Agriculture Management System");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1200, 750);
-        setMinimumSize(new Dimension(1000, 650));
+        setMinimumSize(new Dimension(1000, 700));
         setLocationRelativeTo(null);
 
         JPanel rootPanel = new JPanel(new BorderLayout());
@@ -76,6 +79,7 @@ public class MainFrame extends JFrame {
         sidebarPanel.add(Box.createRigidArea(new Dimension(0, 5)));
 
         String[] menuItems = {
+            "Home",
             "Field Management",
             "Crop Management",
             "Irrigation Management",
@@ -84,16 +88,19 @@ public class MainFrame extends JFrame {
             "Sales Management",
             "Profit / Loss",
             "Weather",
-            "Report Generation"
+            "Report Generation",
+            "Profile"
         };
 
         for (String item : menuItems) {
             UITheme.SidebarButton btn = UITheme.createSidebarButton(item);
             btn.setAlignmentX(Component.LEFT_ALIGNMENT);
-            btn.setMaximumSize(new Dimension(230, 48));
+            btn.setPreferredSize(new Dimension(230, 42));
+            btn.setMaximumSize(new Dimension(230, 42));
             btn.addActionListener(e -> switchPanel(item, btn));
             sidebarPanel.add(btn);
             sidebarButtons.add(btn);
+            buttonsByName.put(item, btn);
         }
 
         sidebarButtons.get(0).setSelected(true);
@@ -102,7 +109,8 @@ public class MainFrame extends JFrame {
 
         UITheme.SidebarButton logoutBtn = UITheme.createSidebarButton("Logout");
         logoutBtn.setAlignmentX(Component.LEFT_ALIGNMENT);
-        logoutBtn.setMaximumSize(new Dimension(230, 48));
+        logoutBtn.setPreferredSize(new Dimension(230, 42));
+        logoutBtn.setMaximumSize(new Dimension(230, 42));
         logoutBtn.addActionListener(e -> handleLogout());
         sidebarPanel.add(logoutBtn);
         sidebarPanel.add(Box.createRigidArea(new Dimension(0, 15)));
@@ -119,7 +127,7 @@ public class MainFrame extends JFrame {
         header.setBorder(new EmptyBorder(20, 30, 20, 30));
         header.setPreferredSize(new Dimension(0, 70));
 
-        titleLabel = new JLabel("Field Management");
+        titleLabel = new JLabel("Home");
         titleLabel.setFont(UITheme.FONT_HEADER);
         titleLabel.setForeground(UITheme.TEXT_DARK);
         header.add(titleLabel, BorderLayout.WEST);
@@ -136,6 +144,7 @@ public class MainFrame extends JFrame {
         contentPanel.setBackground(UITheme.BACKGROUND);
         contentPanel.setBorder(new EmptyBorder(20, 20, 20, 20));
 
+        contentPanel.add(new HomePanel(this::navigateTo), "Home");
         contentPanel.add(new FieldPanel(), "Field Management");
         contentPanel.add(new CropPanel(), "Crop Management");
         contentPanel.add(new IrrigationPanel(), "Irrigation Management");
@@ -145,11 +154,19 @@ public class MainFrame extends JFrame {
         contentPanel.add(new ProfitLossPanel(), "Profit / Loss");
         contentPanel.add(new WeatherPanel(), "Weather");
         contentPanel.add(new ReportPanel(), "Report Generation");
+        contentPanel.add(new ProfilePanel(), "Profile");
 
         mainArea.add(headerWrapper, BorderLayout.NORTH);
         mainArea.add(contentPanel, BorderLayout.CENTER);
 
         return mainArea;
+    }
+
+    private void navigateTo(String name) {
+        UITheme.SidebarButton btn = buttonsByName.get(name);
+        if (btn != null) {
+            switchPanel(name, btn);
+        }
     }
 
     private void switchPanel(String name, UITheme.SidebarButton clicked) {
