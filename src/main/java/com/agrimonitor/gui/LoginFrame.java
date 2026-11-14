@@ -27,6 +27,7 @@ public class LoginFrame extends JFrame {
     private JButton loginButton;
     private JButton registerButton;
 
+<<<<<<< HEAD
     // forgot password
     private CardLayout forgotCards;
     private JPanel forgotStepPanel;
@@ -39,6 +40,8 @@ public class LoginFrame extends JFrame {
     private JLabel forgotInfoLabel;
     private String pendingResetEmail;
 
+=======
+>>>>>>> 8f96b5281f8e6ca50e2450aff08a2fdda502ceb7
     private UserDAO userDAO;
     private FadePanel fadePanel;
     private boolean switching = false;
@@ -338,9 +341,12 @@ public class LoginFrame extends JFrame {
         if ("LOGIN".equals(name)) {
             getRootPane().setDefaultButton(loginButton);
             setTitle("AgriMonitor - Login");
+<<<<<<< HEAD
         } else if ("FORGOT".equals(name)) {
             showForgotStep(1);
             setTitle("AgriMonitor - Reset Password");
+=======
+>>>>>>> 8f96b5281f8e6ca50e2450aff08a2fdda502ceb7
         } else {
             getRootPane().setDefaultButton(registerButton);
             setTitle("AgriMonitor - Register");
@@ -456,9 +462,13 @@ public class LoginFrame extends JFrame {
         form.add(field("Password", loginPasswordField));
         form.add(Box.createRigidArea(new Dimension(0, 8)));
         form.add(showPasswordBox(loginPasswordField));
+<<<<<<< HEAD
         form.add(Box.createRigidArea(new Dimension(0, 6)));
         form.add(forgotLinkRow());
         form.add(Box.createRigidArea(new Dimension(0, 20)));
+=======
+        form.add(Box.createRigidArea(new Dimension(0, 26)));
+>>>>>>> 8f96b5281f8e6ca50e2450aff08a2fdda502ceb7
         form.add(loginButton);
         form.add(Box.createRigidArea(new Dimension(0, 24)));
         form.add(switchRow("New to AgriMonitor?", "Create an account", "REGISTER"));
@@ -480,6 +490,7 @@ public class LoginFrame extends JFrame {
         form.add(heading("Create account"));
         form.add(Box.createRigidArea(new Dimension(0, 8)));
         form.add(subheading("Register to start managing your farm"));
+<<<<<<< HEAD
         form.add(Box.createRigidArea(new Dimension(0, 18)));
         form.add(field("Username", registerUsernameField));
         form.add(Box.createRigidArea(new Dimension(0, 8)));
@@ -493,6 +504,19 @@ public class LoginFrame extends JFrame {
         form.add(Box.createRigidArea(new Dimension(0, 16)));
         form.add(registerButton);
         form.add(Box.createRigidArea(new Dimension(0, 14)));
+=======
+        form.add(Box.createRigidArea(new Dimension(0, 28)));
+        form.add(field("Username", registerUsernameField));
+        form.add(Box.createRigidArea(new Dimension(0, 14)));
+        form.add(field("Password", registerPasswordField));
+        form.add(Box.createRigidArea(new Dimension(0, 14)));
+        form.add(field("Confirm Password", registerConfirmField));
+        form.add(Box.createRigidArea(new Dimension(0, 8)));
+        form.add(showPasswordBox(registerPasswordField, registerConfirmField));
+        form.add(Box.createRigidArea(new Dimension(0, 24)));
+        form.add(registerButton);
+        form.add(Box.createRigidArea(new Dimension(0, 22)));
+>>>>>>> 8f96b5281f8e6ca50e2450aff08a2fdda502ceb7
         form.add(switchRow("Already have an account?", "Sign in", "LOGIN"));
 
         return centered(form);
@@ -552,6 +576,7 @@ public class LoginFrame extends JFrame {
         String password = new String(registerPasswordField.getPassword());
         String confirm = new String(registerConfirmField.getPassword());
 
+<<<<<<< HEAD
         if (username.isEmpty() || email.isEmpty() || password.isEmpty() || confirm.isEmpty()) {
             showError("Please fill all fields.", "Validation Error", JOptionPane.WARNING_MESSAGE);
             return;
@@ -559,6 +584,10 @@ public class LoginFrame extends JFrame {
 
         if (!UserDAO.isValidEmail(email)) {
             showError("Please enter a valid email address.", "Validation Error", JOptionPane.WARNING_MESSAGE);
+=======
+        if (username.isEmpty() || password.isEmpty() || confirm.isEmpty()) {
+            showError("Please fill all fields.", "Validation Error", JOptionPane.WARNING_MESSAGE);
+>>>>>>> 8f96b5281f8e6ca50e2450aff08a2fdda502ceb7
             return;
         }
 
@@ -567,6 +596,7 @@ public class LoginFrame extends JFrame {
             return;
         }
 
+<<<<<<< HEAD
         UserDAO.RegisterResult result = userDAO.registerUser(username, email, password);
         if (result == UserDAO.RegisterResult.USERNAME_TAKEN) {
             showError("Username already exists.", "Registration Failed", JOptionPane.ERROR_MESSAGE);
@@ -574,6 +604,11 @@ public class LoginFrame extends JFrame {
         }
         if (result == UserDAO.RegisterResult.EMAIL_TAKEN) {
             showError("An account with this email already exists.", "Registration Failed", JOptionPane.ERROR_MESSAGE);
+=======
+        boolean success = userDAO.registerUser(username, password);
+        if (!success) {
+            showError("Username already exists.", "Registration Failed", JOptionPane.ERROR_MESSAGE);
+>>>>>>> 8f96b5281f8e6ca50e2450aff08a2fdda502ceb7
             return;
         }
 
