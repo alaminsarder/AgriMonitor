@@ -93,6 +93,20 @@ AgriMonitor uses MongoDB for persistent data storage. The application can connec
 
 Keep database credentials and API keys private. Do not commit passwords, connection strings containing credentials, or API keys to the public repository.
 
+## Forgot Password (email code)
+
+Users enter an email when they register. On the login screen, **Forgot password?** emails a 6-digit code to that address (valid 10 minutes, max 5 wrong tries, 60 s between resends). After entering the code the user sets a new password. Accounts created before this feature are asked for their email the next time they sign in.
+
+The app sends the email through SMTP (Gmail by default) using a sender account. Add these to the `.env` file in the project root:
+
+```
+MONGODB_URI=your-mongodb-connection-string
+SMTP_EMAIL=sender-account@gmail.com
+SMTP_PASSWORD=your-16-character-gmail-app-password
+```
+
+For Gmail, turn on 2-Step Verification and create an **App Password** (Google Account > Security > App passwords). Do not use the normal Gmail password. Optional: `SMTP_HOST` (default `smtp.gmail.com`) and `SMTP_PORT` (default `465`; any other port uses STARTTLS, e.g. `587`). See `.env.example`.
+
 ## Project Team
 
 | Name | Roll | Student ID |
