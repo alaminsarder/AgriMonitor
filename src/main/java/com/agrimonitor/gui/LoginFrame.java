@@ -1,7 +1,9 @@
 package com.agrimonitor.gui;
 
+import com.agrimonitor.dao.DemoDataService;
 import com.agrimonitor.dao.UserDAO;
 import com.agrimonitor.model.User;
+import com.agrimonitor.service.EmailService;
 import com.agrimonitor.session.Session;
 
 import javax.swing.*;
@@ -18,12 +20,28 @@ public class LoginFrame extends JFrame {
     private JPasswordField loginPasswordField;
 
     private JTextField registerUsernameField;
+    private JTextField registerEmailField;
     private JPasswordField registerPasswordField;
     private JPasswordField registerConfirmField;
 
     private JButton loginButton;
     private JButton registerButton;
 
+<<<<<<< HEAD
+    // forgot password
+    private CardLayout forgotCards;
+    private JPanel forgotStepPanel;
+    private JTextField forgotEmailField;
+    private JTextField forgotCodeField;
+    private JPasswordField forgotNewPasswordField;
+    private JPasswordField forgotConfirmField;
+    private JButton sendCodeButton;
+    private JButton resetButton;
+    private JLabel forgotInfoLabel;
+    private String pendingResetEmail;
+
+=======
+>>>>>>> 8f96b5281f8e6ca50e2450aff08a2fdda502ceb7
     private UserDAO userDAO;
     private FadePanel fadePanel;
     private boolean switching = false;
@@ -242,6 +260,7 @@ public class LoginFrame extends JFrame {
 
         cardPanel.add(buildLoginPanel(), "LOGIN");
         cardPanel.add(buildRegisterPanel(), "REGISTER");
+        cardPanel.add(buildForgotPanel(), "FORGOT");
 
         fadePanel = new FadePanel(new BorderLayout());
         fadePanel.add(cardPanel, BorderLayout.CENTER);
@@ -322,6 +341,12 @@ public class LoginFrame extends JFrame {
         if ("LOGIN".equals(name)) {
             getRootPane().setDefaultButton(loginButton);
             setTitle("AgriMonitor - Login");
+<<<<<<< HEAD
+        } else if ("FORGOT".equals(name)) {
+            showForgotStep(1);
+            setTitle("AgriMonitor - Reset Password");
+=======
+>>>>>>> 8f96b5281f8e6ca50e2450aff08a2fdda502ceb7
         } else {
             getRootPane().setDefaultButton(registerButton);
             setTitle("AgriMonitor - Register");
@@ -437,7 +462,13 @@ public class LoginFrame extends JFrame {
         form.add(field("Password", loginPasswordField));
         form.add(Box.createRigidArea(new Dimension(0, 8)));
         form.add(showPasswordBox(loginPasswordField));
+<<<<<<< HEAD
+        form.add(Box.createRigidArea(new Dimension(0, 6)));
+        form.add(forgotLinkRow());
+        form.add(Box.createRigidArea(new Dimension(0, 20)));
+=======
         form.add(Box.createRigidArea(new Dimension(0, 26)));
+>>>>>>> 8f96b5281f8e6ca50e2450aff08a2fdda502ceb7
         form.add(loginButton);
         form.add(Box.createRigidArea(new Dimension(0, 24)));
         form.add(switchRow("New to AgriMonitor?", "Create an account", "REGISTER"));
@@ -449,6 +480,7 @@ public class LoginFrame extends JFrame {
         JPanel form = formContainer();
 
         registerUsernameField = UITheme.createTextField();
+        registerEmailField = UITheme.createTextField();
         registerPasswordField = UITheme.createPasswordField();
         registerConfirmField = UITheme.createPasswordField();
 
@@ -458,6 +490,21 @@ public class LoginFrame extends JFrame {
         form.add(heading("Create account"));
         form.add(Box.createRigidArea(new Dimension(0, 8)));
         form.add(subheading("Register to start managing your farm"));
+<<<<<<< HEAD
+        form.add(Box.createRigidArea(new Dimension(0, 18)));
+        form.add(field("Username", registerUsernameField));
+        form.add(Box.createRigidArea(new Dimension(0, 8)));
+        form.add(field("Email (used to reset your password)", registerEmailField));
+        form.add(Box.createRigidArea(new Dimension(0, 8)));
+        form.add(field("Password", registerPasswordField));
+        form.add(Box.createRigidArea(new Dimension(0, 8)));
+        form.add(field("Confirm Password", registerConfirmField));
+        form.add(Box.createRigidArea(new Dimension(0, 6)));
+        form.add(showPasswordBox(registerPasswordField, registerConfirmField));
+        form.add(Box.createRigidArea(new Dimension(0, 16)));
+        form.add(registerButton);
+        form.add(Box.createRigidArea(new Dimension(0, 14)));
+=======
         form.add(Box.createRigidArea(new Dimension(0, 28)));
         form.add(field("Username", registerUsernameField));
         form.add(Box.createRigidArea(new Dimension(0, 14)));
@@ -469,6 +516,7 @@ public class LoginFrame extends JFrame {
         form.add(Box.createRigidArea(new Dimension(0, 24)));
         form.add(registerButton);
         form.add(Box.createRigidArea(new Dimension(0, 22)));
+>>>>>>> 8f96b5281f8e6ca50e2450aff08a2fdda502ceb7
         form.add(switchRow("Already have an account?", "Sign in", "LOGIN"));
 
         return centered(form);
@@ -489,18 +537,57 @@ public class LoginFrame extends JFrame {
             return;
         }
 
+        if (user.getEmail() == null || user.getEmail().isEmpty()) {
+            askForEmail(user);
+        }
+
         Session.login(user.getId(), user.getUsername());
+        DemoDataService.seedIfNeeded();
         dispose();
         SwingUtilities.invokeLater(() -> new MainFrame().setVisible(true));
     }
 
+    // accounts created before email existed: ask once so they can use "Forgot password"
+    private void askForEmail(User user) {
+        String message = "Add your email address so you can reset your password if you forget it.";
+        while (true) {
+            String input = JOptionPane.showInputDialog(this, message, "Add your email",
+                    JOptionPane.QUESTION_MESSAGE);
+            if (input == null) {
+                return; // skipped, will be asked again next login
+            }
+            String email = UserDAO.normalizeEmail(input);
+            if (!UserDAO.isValidEmail(email)) {
+                message = "That email address is not valid. Please try again.";
+                continue;
+            }
+            if (!userDAO.setEmail(user.getId(), email)) {
+                message = "That email is already used by another account. Use a different email.";
+                continue;
+            }
+            user.setEmail(email);
+            return;
+        }
+    }
+
     private void handleRegister() {
         String username = registerUsernameField.getText().trim();
+        String email = UserDAO.normalizeEmail(registerEmailField.getText());
         String password = new String(registerPasswordField.getPassword());
         String confirm = new String(registerConfirmField.getPassword());
 
+<<<<<<< HEAD
+        if (username.isEmpty() || email.isEmpty() || password.isEmpty() || confirm.isEmpty()) {
+            showError("Please fill all fields.", "Validation Error", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        if (!UserDAO.isValidEmail(email)) {
+            showError("Please enter a valid email address.", "Validation Error", JOptionPane.WARNING_MESSAGE);
+=======
         if (username.isEmpty() || password.isEmpty() || confirm.isEmpty()) {
             showError("Please fill all fields.", "Validation Error", JOptionPane.WARNING_MESSAGE);
+>>>>>>> 8f96b5281f8e6ca50e2450aff08a2fdda502ceb7
             return;
         }
 
@@ -509,15 +596,266 @@ public class LoginFrame extends JFrame {
             return;
         }
 
+<<<<<<< HEAD
+        UserDAO.RegisterResult result = userDAO.registerUser(username, email, password);
+        if (result == UserDAO.RegisterResult.USERNAME_TAKEN) {
+            showError("Username already exists.", "Registration Failed", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        if (result == UserDAO.RegisterResult.EMAIL_TAKEN) {
+            showError("An account with this email already exists.", "Registration Failed", JOptionPane.ERROR_MESSAGE);
+=======
         boolean success = userDAO.registerUser(username, password);
         if (!success) {
             showError("Username already exists.", "Registration Failed", JOptionPane.ERROR_MESSAGE);
+>>>>>>> 8f96b5281f8e6ca50e2450aff08a2fdda502ceb7
             return;
         }
 
         User user = userDAO.loginUser(username, password);
         Session.login(user.getId(), user.getUsername());
+        DemoDataService.seedIfNeeded();
         dispose();
         SwingUtilities.invokeLater(() -> new MainFrame().setVisible(true));
+    }
+
+    // ====================== Forgot password ======================
+
+    private JPanel forgotLinkRow() {
+        JPanel row = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        row.setOpaque(false);
+        row.setAlignmentX(Component.LEFT_ALIGNMENT);
+        row.setMaximumSize(new Dimension(FORM_WIDTH, 26));
+        row.add(linkButton("Forgot password?", "FORGOT"));
+        return row;
+    }
+
+    private JPanel buildForgotPanel() {
+        forgotCards = new CardLayout();
+        forgotStepPanel = new JPanel(forgotCards);
+        forgotStepPanel.setBackground(Color.WHITE);
+        forgotStepPanel.add(buildForgotStep1(), "STEP1");
+        forgotStepPanel.add(buildForgotStep2(), "STEP2");
+        return forgotStepPanel;
+    }
+
+    // step 1: ask for the account email
+    private JPanel buildForgotStep1() {
+        JPanel form = formContainer();
+
+        forgotEmailField = UITheme.createTextField();
+
+        sendCodeButton = primaryButton("Send Code");
+        sendCodeButton.addActionListener(e -> handleSendCode(false));
+
+        form.add(heading("Forgot password?"));
+        form.add(Box.createRigidArea(new Dimension(0, 8)));
+        form.add(subheading("Enter the email you registered with."));
+        form.add(Box.createRigidArea(new Dimension(0, 4)));
+        form.add(subheading("We will email you a 6-digit code."));
+        form.add(Box.createRigidArea(new Dimension(0, 30)));
+        form.add(field("Email", forgotEmailField));
+        form.add(Box.createRigidArea(new Dimension(0, 24)));
+        form.add(sendCodeButton);
+        form.add(Box.createRigidArea(new Dimension(0, 22)));
+        form.add(switchRow("Remembered it?", "Back to sign in", "LOGIN"));
+
+        return centered(form);
+    }
+
+    // step 2: code + new password
+    private JPanel buildForgotStep2() {
+        JPanel form = formContainer();
+
+        forgotCodeField = UITheme.createTextField();
+        forgotNewPasswordField = UITheme.createPasswordField();
+        forgotConfirmField = UITheme.createPasswordField();
+
+        resetButton = primaryButton("Reset Password");
+        resetButton.addActionListener(e -> handleResetPassword());
+
+        forgotInfoLabel = subheading("Enter the code we emailed you.");
+
+        form.add(heading("Enter code"));
+        form.add(Box.createRigidArea(new Dimension(0, 8)));
+        form.add(forgotInfoLabel);
+        form.add(Box.createRigidArea(new Dimension(0, 18)));
+        form.add(field("6-digit code", forgotCodeField));
+        form.add(Box.createRigidArea(new Dimension(0, 8)));
+        form.add(field("New Password", forgotNewPasswordField));
+        form.add(Box.createRigidArea(new Dimension(0, 8)));
+        form.add(field("Confirm New Password", forgotConfirmField));
+        form.add(Box.createRigidArea(new Dimension(0, 6)));
+        form.add(showPasswordBox(forgotNewPasswordField, forgotConfirmField));
+        form.add(Box.createRigidArea(new Dimension(0, 16)));
+        form.add(resetButton);
+        form.add(Box.createRigidArea(new Dimension(0, 14)));
+
+        JPanel links = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        links.setOpaque(false);
+        links.setAlignmentX(Component.LEFT_ALIGNMENT);
+        links.setMaximumSize(new Dimension(FORM_WIDTH, 30));
+        JButton resend = new JButton("Resend code");
+        resend.setContentAreaFilled(false);
+        resend.setBorderPainted(false);
+        resend.setFocusPainted(false);
+        resend.setMargin(new Insets(0, 0, 0, 0));
+        resend.setForeground(UITheme.PRIMARY);
+        resend.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        resend.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        resend.addActionListener(e -> handleSendCode(true));
+        links.add(resend);
+        links.add(Box.createRigidArea(new Dimension(18, 0)));
+        links.add(linkButton("Back to sign in", "LOGIN"));
+        form.add(links);
+
+        return centered(form);
+    }
+
+    private void showForgotStep(int step) {
+        forgotCards.show(forgotStepPanel, step == 1 ? "STEP1" : "STEP2");
+        getRootPane().setDefaultButton(step == 1 ? sendCodeButton : resetButton);
+        if (step == 1) {
+            forgotEmailField.setText(pendingResetEmail == null ? "" : pendingResetEmail);
+        }
+    }
+
+    private static String maskEmail(String email) {
+        int at = email.indexOf('@');
+        if (at <= 1) {
+            return email;
+        }
+        return email.charAt(0) + "***" + email.substring(at);
+    }
+
+    private void handleSendCode(boolean resend) {
+        String email = (resend && pendingResetEmail != null)
+                ? pendingResetEmail
+                : UserDAO.normalizeEmail(forgotEmailField.getText());
+
+        if (email.isEmpty()) {
+            showError("Please enter your email.", "Validation Error", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        if (!UserDAO.isValidEmail(email)) {
+            showError("Please enter a valid email address.", "Validation Error", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        if (!userDAO.emailExists(email)) {
+            showError("No account is registered with this email.", "Not Found", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        long wait = userDAO.resendWaitSeconds(email);
+        if (wait > 0) {
+            showError("A code was sent just now. Please wait " + wait + " seconds before requesting another.",
+                    "Please wait", JOptionPane.INFORMATION_MESSAGE);
+            if (!resend) {
+                pendingResetEmail = email;
+                forgotInfoLabel.setText("Code sent to " + maskEmail(email));
+                showForgotStep(2);
+            }
+            return;
+        }
+
+        String code = userDAO.createResetCode(email);
+        if (code == null) {
+            showError("No account is registered with this email.", "Not Found", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        String username = userDAO.getUsernameByEmail(email);
+
+        sendCodeButton.setEnabled(false);
+        sendCodeButton.setText("Sending...");
+
+        final String target = email;
+        new SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() throws Exception {
+                EmailService.sendPasswordResetCode(target, username == null ? "user" : username, code);
+                return null;
+            }
+
+            @Override
+            protected void done() {
+                sendCodeButton.setEnabled(true);
+                sendCodeButton.setText("Send Code");
+                try {
+                    get();
+                } catch (Exception ex) {
+                    userDAO.clearResetCode(target);
+                    Throwable cause = ex.getCause() != null ? ex.getCause() : ex;
+                    showError("Could not send the email.\n" + cause.getMessage(),
+                            "Email Failed", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                pendingResetEmail = target;
+                forgotInfoLabel.setText("Code sent to " + maskEmail(target));
+                forgotCodeField.setText("");
+                forgotNewPasswordField.setText("");
+                forgotConfirmField.setText("");
+                showForgotStep(2);
+                JOptionPane.showMessageDialog(LoginFrame.this,
+                        "A 6-digit code was sent to " + maskEmail(target)
+                                + ".\nIt is valid for 10 minutes. Check your Spam folder if you do not see it.",
+                        "Code Sent", JOptionPane.INFORMATION_MESSAGE);
+            }
+        }.execute();
+    }
+
+    private void handleResetPassword() {
+        String code = forgotCodeField.getText().trim();
+        String newPassword = new String(forgotNewPasswordField.getPassword());
+        String confirm = new String(forgotConfirmField.getPassword());
+
+        if (code.isEmpty() || newPassword.isEmpty() || confirm.isEmpty()) {
+            showError("Please fill all fields.", "Validation Error", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        if (!code.matches("\\d{6}")) {
+            showError("The code must be 6 digits.", "Validation Error", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        if (!newPassword.equals(confirm)) {
+            showError("Passwords do not match.", "Validation Error", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        if (pendingResetEmail == null) {
+            showError("Please request a code first.", "Validation Error", JOptionPane.WARNING_MESSAGE);
+            showForgotStep(1);
+            return;
+        }
+
+        UserDAO.ResetResult result = userDAO.resetPassword(pendingResetEmail, code, newPassword);
+        switch (result) {
+            case OK:
+                String username = userDAO.getUsernameByEmail(pendingResetEmail);
+                pendingResetEmail = null;
+                forgotCodeField.setText("");
+                forgotNewPasswordField.setText("");
+                forgotConfirmField.setText("");
+                loginPasswordField.setText("");
+                loginUsernameField.setText(username == null ? "" : username);
+                JOptionPane.showMessageDialog(this,
+                        "Your password was changed. Please sign in with your new password.",
+                        "Password Reset", JOptionPane.INFORMATION_MESSAGE);
+                switchTo("LOGIN");
+                break;
+            case INVALID_CODE:
+                showError("Wrong code. Please check the email and try again.", "Wrong Code", JOptionPane.ERROR_MESSAGE);
+                break;
+            case EXPIRED:
+                showError("This code has expired. Click \"Resend code\" to get a new one.",
+                        "Code Expired", JOptionPane.ERROR_MESSAGE);
+                break;
+            case TOO_MANY_ATTEMPTS:
+                showError("Too many wrong attempts. Click \"Resend code\" to get a new code.",
+                        "Too Many Attempts", JOptionPane.ERROR_MESSAGE);
+                break;
+            default:
+                showError("No code is pending. Please request a new code.", "No Code", JOptionPane.ERROR_MESSAGE);
+                showForgotStep(1);
+                break;
+        }
     }
 }

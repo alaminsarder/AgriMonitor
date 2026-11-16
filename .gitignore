@@ -6,3 +6,5 @@ fatjar/
 jpackage-input/
 dist/
 target/
+
+all-sources.txt
