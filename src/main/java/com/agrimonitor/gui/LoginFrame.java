@@ -9,6 +9,7 @@ import com.agrimonitor.session.Session;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.awt.geom.Path2D;
 import javax.swing.Timer;
 
 public class LoginFrame extends JFrame {
@@ -27,7 +28,6 @@ public class LoginFrame extends JFrame {
     private JButton loginButton;
     private JButton registerButton;
 
-<<<<<<< HEAD
     // forgot password
     private CardLayout forgotCards;
     private JPanel forgotStepPanel;
@@ -40,13 +40,84 @@ public class LoginFrame extends JFrame {
     private JLabel forgotInfoLabel;
     private String pendingResetEmail;
 
-=======
->>>>>>> 8f96b5281f8e6ca50e2450aff08a2fdda502ceb7
     private UserDAO userDAO;
     private FadePanel fadePanel;
+    private BrandPanel brandPanel;
     private boolean switching = false;
 
     private static final int FORM_WIDTH = 340;
+
+    // ---------- Drawn icons (no font needed, so no missing-glyph boxes) ----------
+
+    // round green badge with a white tick
+    private static class CheckIcon implements Icon {
+        private static final int SIZE = 20;
+
+        public int getIconWidth() {
+            return SIZE;
+        }
+
+        public int getIconHeight() {
+            return SIZE;
+        }
+
+        public void paintIcon(Component c, Graphics g, int x, int y) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+            g2.translate(x, y);
+            g2.setColor(new Color(16, 185, 129, 110));
+            g2.fillOval(0, 0, SIZE, SIZE);
+            g2.setColor(Color.WHITE);
+            g2.setStroke(new BasicStroke(2.2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            Path2D tick = new Path2D.Float();
+            tick.moveTo(5.5, 10.5);
+            tick.lineTo(8.8, 13.8);
+            tick.lineTo(14.5, 6.8);
+            g2.draw(tick);
+            g2.dispose();
+        }
+    }
+
+    // white leaf for the logo badge
+    private static class LeafIcon implements Icon {
+        private static final int SIZE = 38;
+
+        public int getIconWidth() {
+            return SIZE;
+        }
+
+        public int getIconHeight() {
+            return SIZE;
+        }
+
+        public void paintIcon(Component c, Graphics g, int x, int y) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+            g2.translate(x, y);
+
+            Path2D leaf = new Path2D.Float();
+            leaf.moveTo(5, 33);
+            leaf.curveTo(3, 13, 15, 3, 34, 3);
+            leaf.curveTo(35, 21, 24, 34, 5, 33);
+            leaf.closePath();
+            g2.setColor(Color.WHITE);
+            g2.fill(leaf);
+
+            // centre vein
+            g2.setColor(UITheme.PRIMARY_DARK);
+            g2.setStroke(new BasicStroke(2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            g2.drawLine(8, 30, 24, 14);
+            g2.drawLine(15, 23, 15, 17);
+            g2.drawLine(15, 23, 21, 23);
+
+            // stem
+            g2.setColor(Color.WHITE);
+            g2.drawLine(5, 33, 2, 36);
+            g2.dispose();
+        }
+    }
 
     // Label that fades in and slides up
     private static class FadeLabel extends JLabel {
@@ -108,10 +179,9 @@ public class LoginFrame extends JFrame {
         BrandPanel() {
             setOpaque(false);
             setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
-            setBorder(BorderFactory.createEmptyBorder(0, 44, 0, 36));
-            setPreferredSize(new Dimension(400, 620));
+            adjustTo(900);
 
-            FadeLabel badge = new FadeLabel("\uD83C\uDF3E", SwingConstants.CENTER) {
+            FadeLabel badge = new FadeLabel("", SwingConstants.CENTER) {
                 protected void paintComponent(Graphics g) {
                     Graphics2D g2 = (Graphics2D) g.create();
                     g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -123,8 +193,8 @@ public class LoginFrame extends JFrame {
                     super.paintComponent(g);
                 }
             };
-            badge.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 34));
-            badge.setForeground(Color.WHITE);
+            badge.setIcon(new LeafIcon());
+            badge.setHorizontalAlignment(SwingConstants.CENTER);
             badge.setPreferredSize(new Dimension(68, 68));
             badge.setMaximumSize(new Dimension(68, 68));
             badge.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -181,8 +251,20 @@ public class LoginFrame extends JFrame {
             timer = new Timer(33, e -> tick());
         }
 
+        // keep the brand side proportional when the window is resized / maximized
+        void adjustTo(int totalWidth) {
+            int w = Math.max(400, (int) (totalWidth * 0.42));
+            int pad = Math.max(44, (w - 340) / 2);
+            setPreferredSize(new Dimension(w, 620));
+            setBorder(BorderFactory.createEmptyBorder(0, pad, 0, 36));
+            revalidate();
+            repaint();
+        }
+
         private FadeLabel feature(String text) {
-            FadeLabel l = new FadeLabel("\u2713   " + text, SwingConstants.LEFT);
+            FadeLabel l = new FadeLabel(text, SwingConstants.LEFT);
+            l.setIcon(new CheckIcon());
+            l.setIconTextGap(12);
             l.setFont(new Font("Segoe UI", Font.PLAIN, 14));
             l.setForeground(new Color(236, 253, 245));
             l.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -246,9 +328,11 @@ public class LoginFrame extends JFrame {
 
         setTitle("AgriMonitor - Login");
         setSize(900, 620);
+        setMinimumSize(new Dimension(900, 620));
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setResizable(false);
+        setResizable(true);
+        setExtendedState(JFrame.MAXIMIZED_BOTH);   // full screen
 
         JPanel root = new JPanel(new BorderLayout());
         root.setBackground(Color.WHITE);
@@ -266,8 +350,16 @@ public class LoginFrame extends JFrame {
         fadePanel.add(cardPanel, BorderLayout.CENTER);
         fadePanel.setAlpha(0f);
 
-        root.add(new BrandPanel(), BorderLayout.WEST);
+        brandPanel = new BrandPanel();
+        root.add(brandPanel, BorderLayout.WEST);
         root.add(fadePanel, BorderLayout.CENTER);
+
+        root.addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentResized(ComponentEvent e) {
+                brandPanel.adjustTo(root.getWidth());
+            }
+        });
 
         showCard("LOGIN");
 
@@ -314,6 +406,13 @@ public class LoginFrame extends JFrame {
 
     // window shake, then run the action (used for error messages)
     private void shake(Runnable after) {
+        // a maximized window can not be moved, so skip the shake
+        if ((getExtendedState() & JFrame.MAXIMIZED_BOTH) != 0) {
+            if (after != null) {
+                after.run();
+            }
+            return;
+        }
         final Point origin = getLocation();
         final int[] offsets = { -12, 12, -9, 9, -6, 6, -3, 3, 0 };
         final int[] i = { 0 };
@@ -341,12 +440,9 @@ public class LoginFrame extends JFrame {
         if ("LOGIN".equals(name)) {
             getRootPane().setDefaultButton(loginButton);
             setTitle("AgriMonitor - Login");
-<<<<<<< HEAD
         } else if ("FORGOT".equals(name)) {
             showForgotStep(1);
             setTitle("AgriMonitor - Reset Password");
-=======
->>>>>>> 8f96b5281f8e6ca50e2450aff08a2fdda502ceb7
         } else {
             getRootPane().setDefaultButton(registerButton);
             setTitle("AgriMonitor - Register");
@@ -462,13 +558,9 @@ public class LoginFrame extends JFrame {
         form.add(field("Password", loginPasswordField));
         form.add(Box.createRigidArea(new Dimension(0, 8)));
         form.add(showPasswordBox(loginPasswordField));
-<<<<<<< HEAD
         form.add(Box.createRigidArea(new Dimension(0, 6)));
         form.add(forgotLinkRow());
         form.add(Box.createRigidArea(new Dimension(0, 20)));
-=======
-        form.add(Box.createRigidArea(new Dimension(0, 26)));
->>>>>>> 8f96b5281f8e6ca50e2450aff08a2fdda502ceb7
         form.add(loginButton);
         form.add(Box.createRigidArea(new Dimension(0, 24)));
         form.add(switchRow("New to AgriMonitor?", "Create an account", "REGISTER"));
@@ -490,7 +582,6 @@ public class LoginFrame extends JFrame {
         form.add(heading("Create account"));
         form.add(Box.createRigidArea(new Dimension(0, 8)));
         form.add(subheading("Register to start managing your farm"));
-<<<<<<< HEAD
         form.add(Box.createRigidArea(new Dimension(0, 18)));
         form.add(field("Username", registerUsernameField));
         form.add(Box.createRigidArea(new Dimension(0, 8)));
@@ -504,19 +595,6 @@ public class LoginFrame extends JFrame {
         form.add(Box.createRigidArea(new Dimension(0, 16)));
         form.add(registerButton);
         form.add(Box.createRigidArea(new Dimension(0, 14)));
-=======
-        form.add(Box.createRigidArea(new Dimension(0, 28)));
-        form.add(field("Username", registerUsernameField));
-        form.add(Box.createRigidArea(new Dimension(0, 14)));
-        form.add(field("Password", registerPasswordField));
-        form.add(Box.createRigidArea(new Dimension(0, 14)));
-        form.add(field("Confirm Password", registerConfirmField));
-        form.add(Box.createRigidArea(new Dimension(0, 8)));
-        form.add(showPasswordBox(registerPasswordField, registerConfirmField));
-        form.add(Box.createRigidArea(new Dimension(0, 24)));
-        form.add(registerButton);
-        form.add(Box.createRigidArea(new Dimension(0, 22)));
->>>>>>> 8f96b5281f8e6ca50e2450aff08a2fdda502ceb7
         form.add(switchRow("Already have an account?", "Sign in", "LOGIN"));
 
         return centered(form);
@@ -576,7 +654,6 @@ public class LoginFrame extends JFrame {
         String password = new String(registerPasswordField.getPassword());
         String confirm = new String(registerConfirmField.getPassword());
 
-<<<<<<< HEAD
         if (username.isEmpty() || email.isEmpty() || password.isEmpty() || confirm.isEmpty()) {
             showError("Please fill all fields.", "Validation Error", JOptionPane.WARNING_MESSAGE);
             return;
@@ -584,10 +661,6 @@ public class LoginFrame extends JFrame {
 
         if (!UserDAO.isValidEmail(email)) {
             showError("Please enter a valid email address.", "Validation Error", JOptionPane.WARNING_MESSAGE);
-=======
-        if (username.isEmpty() || password.isEmpty() || confirm.isEmpty()) {
-            showError("Please fill all fields.", "Validation Error", JOptionPane.WARNING_MESSAGE);
->>>>>>> 8f96b5281f8e6ca50e2450aff08a2fdda502ceb7
             return;
         }
 
@@ -596,7 +669,6 @@ public class LoginFrame extends JFrame {
             return;
         }
 
-<<<<<<< HEAD
         UserDAO.RegisterResult result = userDAO.registerUser(username, email, password);
         if (result == UserDAO.RegisterResult.USERNAME_TAKEN) {
             showError("Username already exists.", "Registration Failed", JOptionPane.ERROR_MESSAGE);
@@ -604,11 +676,6 @@ public class LoginFrame extends JFrame {
         }
         if (result == UserDAO.RegisterResult.EMAIL_TAKEN) {
             showError("An account with this email already exists.", "Registration Failed", JOptionPane.ERROR_MESSAGE);
-=======
-        boolean success = userDAO.registerUser(username, password);
-        if (!success) {
-            showError("Username already exists.", "Registration Failed", JOptionPane.ERROR_MESSAGE);
->>>>>>> 8f96b5281f8e6ca50e2450aff08a2fdda502ceb7
             return;
         }
 

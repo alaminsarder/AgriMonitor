@@ -12,11 +12,14 @@ import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.geom.Arc2D;
 import java.awt.geom.Path2D;
 import java.awt.geom.RoundRectangle2D;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
+import java.time.format.TextStyle;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -28,9 +31,10 @@ public class HomePanel extends JPanel {
     private static final Color FOREST_LIGHT = new Color(55, 101, 75);
     private static final Color GOLD = new Color(190, 151, 73);
     private static final Color PALE_GOLD = new Color(230, 210, 158);
-    private static final Color PAPER = new Color(250, 248, 242);
-    private static final Color LINE = new Color(226, 224, 212);
+    private static final Color LINE = new Color(232, 236, 232);
     private static final Color MUTED = new Color(111, 120, 108);
+    private static final Color GREEN = new Color(52, 130, 98);
+    private static final Color RED = new Color(185, 78, 69);
 
     private static final DateTimeFormatter TIME_FORMAT =
             DateTimeFormatter.ofPattern("hh:mm:ss a", Locale.ENGLISH);
@@ -57,30 +61,25 @@ public class HomePanel extends JPanel {
     private final JLabel dateLabel = new JLabel(" ");
     private final JLabel clock = new JLabel(" ");
 
-    private final JLabel fieldsValue = new JLabel("-");
-    private final JLabel fieldsSub = new JLabel("Registered plots");
+    private final RingCard salesRing = new RingCard("Total sales", "Share of money flow", GREEN);
+    private final RingCard costRing = new RingCard("Total cost", "Share of money flow", GOLD);
+    private final RingCard netRing = new RingCard("Net profit", "Profit margin", GREEN);
+    private final MiniCard fieldsMini = new MiniCard("Fields", "field", GREEN);
+    private final MiniCard cropsMini = new MiniCard("Crops", "crop", GOLD);
 
-    private final JLabel cropsValue = new JLabel("-");
-    private final JLabel cropsSub = new JLabel("Under tracking");
-
-    private final JLabel salesValue = new JLabel("-");
-    private final JLabel salesSub = new JLabel("Total revenue");
-
-    private final JLabel netTitle = new JLabel("Net profit");
-    private final JLabel netValue = new JLabel("-");
-    private final JLabel netSub = new JLabel(" ");
-
-    private final BarsCard moneyCard = new BarsCard(
+    private final ColumnChart moneyChart = new ColumnChart(
             "Money flow",
             "Revenue, expenses and net result",
             "No sales or cost recorded yet"
     );
 
-    private final BarsCard cropCard = new BarsCard(
+    private final AreaChart cropChart = new AreaChart(
             "Crop performance",
             "Top crops ranked by profit",
             "No crop data yet"
     );
+
+    private final MonthCalendar calendar = new MonthCalendar();
 
     private final Timer clockTimer;
 
@@ -100,34 +99,35 @@ public class HomePanel extends JPanel {
         body.setBorder(new EmptyBorder(22, 26, 28, 26));
 
         JComponent hero = buildHero();
-        fixHeight(hero, 166);
+        fixHeight(hero, 132);
         body.add(hero);
         body.add(Box.createVerticalStrut(18));
 
-        JComponent summary = buildSummary();
-        fixHeight(summary, 134);
-        body.add(summary);
-        body.add(Box.createVerticalStrut(20));
-
-        JComponent section = sectionHeading(
-                "Farm overview",
-                "A closer look at your farm's performance"
-        );
-        fixHeight(section, 48);
-        body.add(section);
-        body.add(Box.createVerticalStrut(8));
+        JPanel rings = new JPanel(new GridLayout(1, 4, 16, 0));
+        rings.setOpaque(false);
+        rings.add(salesRing);
+        rings.add(costRing);
+        rings.add(netRing);
+        rings.add(buildMiniStack());
+        fixHeight(rings, 170);
+        body.add(rings);
+        body.add(Box.createVerticalStrut(18));
 
         JPanel charts = new JPanel(new GridLayout(1, 2, 16, 0));
         charts.setOpaque(false);
-        charts.add(moneyCard);
-        charts.add(cropCard);
-        fixHeight(charts, 276);
+        charts.add(moneyChart);
+        charts.add(cropChart);
+        fixHeight(charts, 310);
         body.add(charts);
-        body.add(Box.createVerticalStrut(20));
+        body.add(Box.createVerticalStrut(18));
 
-        JComponent directory = buildDirectory();
-        fixHeight(directory, 364);
-        body.add(directory);
+        JPanel bottom = new JPanel(new BorderLayout(16, 0));
+        bottom.setOpaque(false);
+        calendar.setPreferredSize(new Dimension(340, 10));
+        bottom.add(buildDirectory(), BorderLayout.CENTER);
+        bottom.add(calendar, BorderLayout.EAST);
+        fixHeight(bottom, 360);
+        body.add(bottom);
 
         JScrollPane scroll = new JScrollPane(
                 body,
@@ -181,15 +181,23 @@ public class HomePanel extends JPanel {
         component.setMaximumSize(new Dimension(Integer.MAX_VALUE, height));
     }
 
+    private JComponent buildMiniStack() {
+        JPanel stack = new JPanel(new GridLayout(2, 1, 0, 14));
+        stack.setOpaque(false);
+        stack.add(fieldsMini);
+        stack.add(cropsMini);
+        return stack;
+    }
+
     private JComponent buildHero() {
         HeroPanel hero = new HeroPanel();
         hero.setLayout(new BorderLayout(20, 0));
-        hero.setBorder(new EmptyBorder(24, 32, 24, 32));
+        hero.setBorder(new EmptyBorder(20, 34, 20, 34));
 
         greeting.setFont(font(Font.BOLD, 11));
         greeting.setForeground(PALE_GOLD);
 
-        username.setFont(font(Font.BOLD, 30));
+        username.setFont(font(Font.BOLD, 28));
         username.setForeground(Color.WHITE);
 
         JLabel subtitle = new JLabel("Your farm, thoughtfully managed.");
@@ -206,9 +214,9 @@ public class HomePanel extends JPanel {
 
         welcome.add(Box.createVerticalGlue());
         welcome.add(greeting);
-        welcome.add(Box.createVerticalStrut(6));
+        welcome.add(Box.createVerticalStrut(4));
         welcome.add(username);
-        welcome.add(Box.createVerticalStrut(6));
+        welcome.add(Box.createVerticalStrut(4));
         welcome.add(subtitle);
         welcome.add(Box.createVerticalGlue());
 
@@ -231,9 +239,9 @@ public class HomePanel extends JPanel {
         timeBox.setLayout(new BoxLayout(timeBox, BoxLayout.Y_AXIS));
         timeBox.add(Box.createVerticalGlue());
         timeBox.add(timeCaption);
-        timeBox.add(Box.createVerticalStrut(6));
+        timeBox.add(Box.createVerticalStrut(4));
         timeBox.add(clock);
-        timeBox.add(Box.createVerticalStrut(5));
+        timeBox.add(Box.createVerticalStrut(4));
         timeBox.add(dateLabel);
         timeBox.add(Box.createVerticalGlue());
 
@@ -243,86 +251,8 @@ public class HomePanel extends JPanel {
         return hero;
     }
 
-    private JComponent buildSummary() {
-        Surface surface = new Surface(PAPER);
-        surface.setLayout(new BorderLayout());
-        surface.setBorder(new EmptyBorder(18, 22, 18, 22));
-
-        JLabel heading = new JLabel("FARM AT A GLANCE");
-        heading.setFont(font(Font.BOLD, 10));
-        heading.setForeground(GOLD);
-
-        JPanel row = new JPanel(new GridLayout(1, 4, 0, 0));
-        row.setOpaque(false);
-        row.add(metric("Fields", fieldsValue, fieldsSub, false));
-        row.add(metric("Crops", cropsValue, cropsSub, true));
-        row.add(metric("Total sales", salesValue, salesSub, true));
-        row.add(metric(netTitle, netValue, netSub, true));
-
-        surface.add(heading, BorderLayout.NORTH);
-        surface.add(row, BorderLayout.CENTER);
-
-        return surface;
-    }
-
-    private JComponent metric(String title, JLabel value, JLabel sub, boolean divider) {
-        return metric(new JLabel(title), value, sub, divider);
-    }
-
-    private JComponent metric(JLabel title, JLabel value, JLabel sub, boolean divider) {
-        MetricPanel panel = new MetricPanel(divider);
-        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-        panel.setBorder(new EmptyBorder(10, divider ? 20 : 0, 0, 8));
-
-        title.setFont(font(Font.PLAIN, 12));
-        title.setForeground(MUTED);
-
-        value.setFont(font(Font.BOLD, 23));
-        value.setForeground(FOREST);
-
-        sub.setFont(font(Font.PLAIN, 11));
-        sub.setForeground(MUTED);
-
-        title.setAlignmentX(Component.LEFT_ALIGNMENT);
-        value.setAlignmentX(Component.LEFT_ALIGNMENT);
-        sub.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        panel.add(title);
-        panel.add(Box.createVerticalStrut(4));
-        panel.add(value);
-        panel.add(Box.createVerticalStrut(3));
-        panel.add(sub);
-
-        return panel;
-    }
-
-    private JComponent sectionHeading(String title, String subtitle) {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setOpaque(false);
-
-        JLabel heading = new JLabel(title);
-        heading.setFont(font(Font.BOLD, 20));
-        heading.setForeground(FOREST);
-
-        JLabel description = new JLabel(subtitle);
-        description.setFont(font(Font.PLAIN, 12));
-        description.setForeground(MUTED);
-
-        JPanel text = new JPanel();
-        text.setOpaque(false);
-        text.setLayout(new BoxLayout(text, BoxLayout.Y_AXIS));
-        heading.setAlignmentX(Component.LEFT_ALIGNMENT);
-        description.setAlignmentX(Component.LEFT_ALIGNMENT);
-        text.add(heading);
-        text.add(Box.createVerticalStrut(2));
-        text.add(description);
-
-        panel.add(text, BorderLayout.WEST);
-        return panel;
-    }
-
     private JComponent buildDirectory() {
-        Surface card = new Surface(PAPER);
+        Surface card = new Surface();
         card.setLayout(new BorderLayout(0, 14));
         card.setBorder(new EmptyBorder(20, 24, 22, 24));
 
@@ -330,7 +260,7 @@ public class HomePanel extends JPanel {
         head.setOpaque(false);
 
         JLabel title = new JLabel("Farm directory");
-        title.setFont(font(Font.BOLD, 20));
+        title.setFont(font(Font.BOLD, 18));
         title.setForeground(FOREST);
 
         JLabel caption = new JLabel("Select a section to continue");
@@ -353,18 +283,18 @@ public class HomePanel extends JPanel {
         head.add(titles, BorderLayout.WEST);
         head.add(number, BorderLayout.EAST);
 
-        JPanel columns = new JPanel(new GridLayout(1, 2, 24, 0));
+        JPanel columns = new JPanel(new GridLayout(1, 2, 16, 0));
         columns.setOpaque(false);
 
-        JPanel left = new JPanel(new GridLayout(5, 1, 0, 5));
+        JPanel left = new JPanel(new GridLayout(5, 1, 0, 6));
         left.setOpaque(false);
 
-        JPanel right = new JPanel(new GridLayout(5, 1, 0, 5));
+        JPanel right = new JPanel(new GridLayout(5, 1, 0, 6));
         right.setOpaque(false);
 
         for (int i = 0; i < MODULES.length; i++) {
             DirectoryButton button = new DirectoryButton(
-                    i + 1,
+                    UITheme.Icons.keyFor(MODULES[i][1]),
                     MODULES[i][1],
                     MODULES[i][2]
             );
@@ -495,82 +425,53 @@ public class HomePanel extends JPanel {
     }
 
     private void apply(Snapshot snapshot) {
-        fieldsValue.setText(snapshot.fields < 0 ? "-" : String.valueOf(snapshot.fields));
-        cropsValue.setText(snapshot.crops < 0 ? "-" : String.valueOf(snapshot.crops));
-
-        fieldsSub.setText("Registered plots");
-        cropsSub.setText("Under tracking");
+        fieldsMini.setValue(snapshot.fields < 0 ? "-" : String.valueOf(snapshot.fields));
+        cropsMini.setValue(snapshot.crops < 0 ? "-" : String.valueOf(snapshot.crops));
 
         List<Bar> moneyBars = new ArrayList<>();
 
         if (snapshot.hasMoney) {
             double net = snapshot.sales - snapshot.cost;
+            double total = Math.abs(snapshot.sales) + Math.abs(snapshot.cost);
+            double salesShare = total > 0 ? Math.abs(snapshot.sales) / total : 0;
+            double costShare = total > 0 ? Math.abs(snapshot.cost) / total : 0;
 
-            salesValue.setText(money(snapshot.sales));
-            salesSub.setText("Total revenue");
+            salesRing.setData(money(snapshot.sales), "Share of money flow", salesShare);
+            costRing.setData(money(snapshot.cost), "Share of money flow", costShare);
 
-            netTitle.setText(net >= 0 ? "Net profit" : "Net loss");
-            netValue.setText(money(Math.abs(net)));
-            netValue.setForeground(
-                    net >= 0 ? new Color(40, 125, 80) : new Color(178, 63, 58)
+            boolean badMargin = Double.isNaN(snapshot.margin) || Double.isInfinite(snapshot.margin);
+            double marginValue = badMargin ? 0 : snapshot.margin;
+
+            netRing.setTitle(net >= 0 ? "Net profit" : "Net loss");
+            netRing.setColor(net >= 0 ? GREEN : RED);
+            netRing.setData(
+                    money(Math.abs(net)),
+                    badMargin ? "Margin n/a" : String.format(Locale.US, "Margin %.1f%%", marginValue),
+                    Math.abs(marginValue) / 100d
             );
 
-            if (Double.isNaN(snapshot.margin) || Double.isInfinite(snapshot.margin)) {
-                netSub.setText("Margin n/a");
-            } else {
-                netSub.setText(String.format(Locale.US, "Margin %.1f%%", snapshot.margin));
-            }
-
             if (snapshot.sales != 0 || snapshot.cost != 0) {
-                moneyBars.add(new Bar(
-                        "Total sales",
-                        money(snapshot.sales),
-                        Math.abs(snapshot.sales),
-                        new Color(52, 130, 98)
-                ));
-
-                moneyBars.add(new Bar(
-                        "Total cost",
-                        money(snapshot.cost),
-                        Math.abs(snapshot.cost),
-                        GOLD
-                ));
-
+                moneyBars.add(new Bar("Total sales", money(snapshot.sales), Math.abs(snapshot.sales), GREEN));
+                moneyBars.add(new Bar("Total cost", money(snapshot.cost), Math.abs(snapshot.cost), GOLD));
                 moneyBars.add(new Bar(
                         net >= 0 ? "Net profit" : "Net loss",
                         (net < 0 ? "-" : "") + money(Math.abs(net)),
                         Math.abs(net),
-                        net >= 0 ? new Color(72, 145, 96) : new Color(185, 78, 69)
+                        net >= 0 ? new Color(72, 145, 96) : RED
                 ));
             }
         } else {
-            salesValue.setText("-");
-            salesSub.setText(" ");
-            netTitle.setText("Net profit");
-            netValue.setText("-");
-            netValue.setForeground(FOREST);
-            netSub.setText(" ");
+            salesRing.setData("-", " ", 0);
+            costRing.setData("-", " ", 0);
+            netRing.setTitle("Net profit");
+            netRing.setColor(GREEN);
+            netRing.setData("-", " ", 0);
         }
 
-        moneyCard.setRows(moneyBars);
+        moneyChart.setBars(moneyBars);
 
-        List<Bar> cropBars = new ArrayList<>();
-        int count = Math.min(4, snapshot.rows.size());
-
-        for (int i = 0; i < count; i++) {
-            CropRow row = snapshot.rows.get(i);
-
-            cropBars.add(new Bar(
-                    row.name,
-                    (row.profit < 0 ? "-" : "") + money(Math.abs(row.profit)),
-                    Math.abs(row.profit),
-                    row.profit >= 0
-                            ? new Color(72, 145, 96)
-                            : new Color(185, 78, 69)
-            ));
-        }
-
-        cropCard.setRows(cropBars);
+        int count = Math.min(6, snapshot.rows.size());
+        cropChart.setRows(new ArrayList<>(snapshot.rows.subList(0, count)));
     }
 
     private static String money(double value) {
@@ -578,6 +479,10 @@ public class HomePanel extends JPanel {
             return String.format(Locale.US, "Tk %.2fM", value / 1_000_000d);
         }
         return "Tk " + String.format(Locale.US, "%,.0f", value);
+    }
+
+    private static String signedMoney(double value) {
+        return (value < 0 ? "-" : "") + money(Math.abs(value));
     }
 
     private static double num(Object value) {
@@ -622,18 +527,35 @@ public class HomePanel extends JPanel {
     }
 
     private static void smooth(Graphics2D g) {
-        g.setRenderingHint(
-                RenderingHints.KEY_ANTIALIASING,
-                RenderingHints.VALUE_ANTIALIAS_ON
+        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+        g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+    }
+
+    private static void centered(Graphics2D g, String text, double cx, double cy) {
+        FontMetrics fm = g.getFontMetrics();
+        g.drawString(
+                text,
+                (float) (cx - fm.stringWidth(text) / 2.0),
+                (float) (cy + (fm.getAscent() - fm.getDescent()) / 2.0)
         );
-        g.setRenderingHint(
-                RenderingHints.KEY_TEXT_ANTIALIASING,
-                RenderingHints.VALUE_TEXT_ANTIALIAS_ON
-        );
-        g.setRenderingHint(
-                RenderingHints.KEY_STROKE_CONTROL,
-                RenderingHints.VALUE_STROKE_PURE
-        );
+    }
+
+    private static void header(Graphics2D g, String title, String subtitle) {
+        g.setColor(GOLD);
+        g.fillRoundRect(24, 24, 4, 30, 4, 4);
+
+        g.setFont(font(Font.BOLD, 16));
+        g.setColor(FOREST);
+        g.drawString(title, 38, 36);
+
+        g.setFont(font(Font.PLAIN, 12));
+        g.setColor(MUTED);
+        g.drawString(subtitle, 38, 52);
+    }
+
+    private static Color alpha(Color c, int a) {
+        return new Color(c.getRed(), c.getGreen(), c.getBlue(), a);
     }
 
     private static class Snapshot {
@@ -677,20 +599,12 @@ public class HomePanel extends JPanel {
         }
 
         @Override
-        public int getScrollableUnitIncrement(
-                Rectangle visibleRect,
-                int orientation,
-                int direction
-        ) {
+        public int getScrollableUnitIncrement(Rectangle visibleRect, int orientation, int direction) {
             return 18;
         }
 
         @Override
-        public int getScrollableBlockIncrement(
-                Rectangle visibleRect,
-                int orientation,
-                int direction
-        ) {
+        public int getScrollableBlockIncrement(Rectangle visibleRect, int orientation, int direction) {
             return Math.max(40, visibleRect.height - 40);
         }
 
@@ -706,10 +620,7 @@ public class HomePanel extends JPanel {
     }
 
     private static class Surface extends JPanel {
-        private final Color fill;
-
-        Surface(Color fill) {
-            this.fill = fill;
+        Surface() {
             setOpaque(false);
         }
 
@@ -718,40 +629,21 @@ public class HomePanel extends JPanel {
             Graphics2D g = (Graphics2D) g0.create();
             smooth(g);
 
-            int w = getWidth() - 1;
-            int h = getHeight() - 3;
+            int w = getWidth();
+            int h = getHeight();
 
-            g.setColor(new Color(31, 61, 51, 12));
-            g.fillRoundRect(1, 3, w - 1, h, 16, 16);
+            for (int i = 0; i < 3; i++) {
+                g.setColor(new Color(31, 61, 51, 8));
+                g.fillRoundRect(i, i + 2, w - 2 * i, h - 2 * i - 2, 28, 28);
+            }
 
-            g.setColor(fill);
-            g.fillRoundRect(0, 0, w, h, 16, 16);
+            g.setColor(Color.WHITE);
+            g.fillRoundRect(3, 1, w - 6, h - 7, 24, 24);
 
             g.setColor(LINE);
-            g.drawRoundRect(0, 0, w, h, 16, 16);
+            g.drawRoundRect(3, 1, w - 7, h - 8, 24, 24);
 
             g.dispose();
-        }
-    }
-
-    private static class MetricPanel extends JPanel {
-        private final boolean divider;
-
-        MetricPanel(boolean divider) {
-            this.divider = divider;
-            setOpaque(false);
-        }
-
-        @Override
-        protected void paintComponent(Graphics g0) {
-            super.paintComponent(g0);
-
-            if (divider) {
-                Graphics2D g = (Graphics2D) g0.create();
-                g.setColor(LINE);
-                g.drawLine(0, 12, 0, getHeight() - 4);
-                g.dispose();
-            }
         }
     }
 
@@ -768,8 +660,7 @@ public class HomePanel extends JPanel {
             int w = getWidth();
             int h = getHeight();
 
-            RoundRectangle2D shape =
-                    new RoundRectangle2D.Double(0, 0, w, h, 18, 18);
+            RoundRectangle2D shape = new RoundRectangle2D.Double(0, 0, w, h, 26, 26);
 
             g.setPaint(new GradientPaint(
                     0, 0, new Color(25, 55, 44),
@@ -779,14 +670,14 @@ public class HomePanel extends JPanel {
 
             g.clip(shape);
 
-            g.setColor(new Color(230, 210, 158, 45));
-            g.setStroke(new BasicStroke(1f));
-            g.drawRoundRect(8, 8, w - 17, h - 17, 13, 13);
+            g.setColor(new Color(255, 255, 255, 14));
+            g.fillOval(w - 220, -90, 260, 260);
+            g.fillOval(w - 330, h - 60, 200, 200);
 
             int cx = w / 2 + 35;
-            int cy = h / 2 + 28;
+            int cy = h / 2 + 22;
 
-            g.setColor(new Color(221, 205, 150, 35));
+            g.setColor(new Color(221, 205, 150, 38));
             g.setStroke(new BasicStroke(1.5f));
 
             Path2D stem = new Path2D.Double();
@@ -812,13 +703,157 @@ public class HomePanel extends JPanel {
             }
 
             g.setColor(GOLD);
-            g.fillRect(30, h - 4, Math.max(0, w - 60), 2);
+            g.fillRect(34, h - 4, Math.max(0, w - 68), 2);
 
             g.dispose();
         }
     }
 
-    private static class BarsCard extends Surface {
+    private static class RingCard extends Surface {
+        private String title;
+        private String value = "-";
+        private String sub;
+        private double pct;
+        private Color color;
+        private final Timer animation;
+        private float progress = 1f;
+
+        RingCard(String title, String sub, Color color) {
+            this.title = title;
+            this.sub = sub;
+            this.color = color;
+
+            animation = new Timer(16, e -> {
+                progress += 0.04f;
+                if (progress >= 1f) {
+                    progress = 1f;
+                    ((Timer) e.getSource()).stop();
+                }
+                repaint();
+            });
+        }
+
+        void setData(String value, String sub, double pct) {
+            this.value = value;
+            this.sub = sub;
+            this.pct = Math.max(0, Math.min(1, pct));
+            progress = 0f;
+            animation.restart();
+        }
+
+        void setTitle(String title) {
+            this.title = title;
+            repaint();
+        }
+
+        void setColor(Color color) {
+            this.color = color;
+            repaint();
+        }
+
+        @Override
+        protected void paintComponent(Graphics g0) {
+            super.paintComponent(g0);
+
+            Graphics2D g = (Graphics2D) g0.create();
+            smooth(g);
+
+            int w = getWidth();
+            int h = getHeight();
+
+            g.setFont(font(Font.BOLD, 13));
+            g.setColor(MUTED);
+            FontMetrics fm = g.getFontMetrics();
+            g.drawString(clip(title, fm, w - 48), 26, 36);
+
+            int d = Math.max(44, Math.min(h - 78, 92));
+            int rx = 26;
+            int ry = 52 + Math.max(0, (h - 14 - 52 - d) / 2);
+            float stroke = 9f;
+
+            g.setStroke(new BasicStroke(stroke, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            g.setColor(alpha(color, 38));
+            g.drawOval(rx + 5, ry + 5, d - 10, d - 10);
+
+            float eased = 1f - (float) Math.pow(1f - progress, 3);
+            double shown = pct * eased;
+
+            if (shown > 0.002) {
+                g.setColor(color);
+                g.draw(new Arc2D.Double(rx + 5, ry + 5, d - 10, d - 10, 90, -360 * shown, Arc2D.OPEN));
+            }
+
+            g.setFont(font(Font.BOLD, 15));
+            g.setColor(FOREST);
+            centered(g, Math.round(pct * 100 * eased) + "%", rx + d / 2.0, ry + d / 2.0);
+
+            int tx = rx + d + 20;
+            int available = Math.max(0, w - tx - 18);
+
+            g.setFont(font(Font.BOLD, 22));
+            g.setColor(FOREST);
+            fm = g.getFontMetrics();
+            g.drawString(clip(value, fm, available), tx, ry + d / 2 + 2);
+
+            g.setFont(font(Font.PLAIN, 12));
+            g.setColor(MUTED);
+            fm = g.getFontMetrics();
+            g.drawString(clip(sub, fm, available), tx, ry + d / 2 + 22);
+
+            g.dispose();
+        }
+    }
+
+    private static class MiniCard extends Surface {
+        private final String title;
+        private final String iconKey;
+        private final Color color;
+        private String value = "-";
+
+        MiniCard(String title, String iconKey, Color color) {
+            this.title = title;
+            this.iconKey = iconKey;
+            this.color = color;
+        }
+
+        void setValue(String value) {
+            this.value = value;
+            repaint();
+        }
+
+        @Override
+        protected void paintComponent(Graphics g0) {
+            super.paintComponent(g0);
+
+            Graphics2D g = (Graphics2D) g0.create();
+            smooth(g);
+
+            int h = getHeight() - 6;
+            int cs = Math.max(30, Math.min(46, h - 24));
+            int cx = 22;
+            int cy = (h - cs) / 2 + 1;
+
+            g.setColor(alpha(color, 40));
+            g.fillRoundRect(cx, cy, cs, cs, 16, 16);
+
+            UITheme.Icons.paint(g, iconKey, cx + (cs - 22) / 2.0, cy + (cs - 22) / 2.0, 22, color.darker());
+
+            int tx = cx + cs + 16;
+            int mid = h / 2 + 1;
+
+            g.setFont(font(Font.PLAIN, 12));
+            g.setColor(MUTED);
+            g.drawString(title, tx, mid - 5);
+
+            g.setFont(font(Font.BOLD, 22));
+            g.setColor(FOREST);
+            g.drawString(value, tx, mid + 20);
+
+            g.dispose();
+        }
+    }
+
+    private static class ColumnChart extends Surface {
         private final String title;
         private final String subtitle;
         private final String emptyText;
@@ -828,8 +863,7 @@ public class HomePanel extends JPanel {
         private boolean ready;
         private float progress = 1f;
 
-        BarsCard(String title, String subtitle, String emptyText) {
-            super(PAPER);
+        ColumnChart(String title, String subtitle, String emptyText) {
             this.title = title;
             this.subtitle = subtitle;
             this.emptyText = emptyText;
@@ -844,7 +878,7 @@ public class HomePanel extends JPanel {
             });
         }
 
-        void setRows(List<Bar> rows) {
+        void setBars(List<Bar> rows) {
             this.rows = new ArrayList<>(rows);
             ready = true;
             progress = 0f;
@@ -860,39 +894,36 @@ public class HomePanel extends JPanel {
 
             int w = getWidth();
             int h = getHeight();
-            int left = 23;
-            int right = w - 23;
 
-            g.setColor(GOLD);
-            g.fillRoundRect(left, 23, 4, 29, 4, 4);
-
-            g.setFont(font(Font.BOLD, 16));
-            g.setColor(FOREST);
-            g.drawString(title, left + 14, 33);
-
-            g.setFont(font(Font.PLAIN, 12));
-            g.setColor(MUTED);
-            g.drawString(subtitle, left + 14, 51);
-
-            g.setColor(LINE);
-            g.drawLine(left, 65, right, 65);
+            header(g, title, subtitle);
 
             if (rows.isEmpty()) {
                 String message = ready ? emptyText : "Loading...";
                 g.setFont(font(Font.PLAIN, 13));
                 g.setColor(MUTED);
-
                 FontMetrics fm = g.getFontMetrics();
                 String shown = clip(message, fm, Math.max(0, w - 44));
-                g.drawString(
-                        shown,
-                        Math.max(left, (w - fm.stringWidth(shown)) / 2),
-                        65 + (h - 65) / 2
-                );
-
+                g.drawString(shown, Math.max(24, (w - fm.stringWidth(shown)) / 2), h / 2 + 12);
                 g.dispose();
                 return;
             }
+
+            int left = 28;
+            int right = w - 28;
+            int top = 86;
+            int bottom = h - 50;
+
+            g.setStroke(new BasicStroke(1f));
+            for (int k = 0; k <= 4; k++) {
+                int y = top + (bottom - top) * k / 4;
+                g.setColor(k == 4 ? new Color(214, 222, 216) : new Color(238, 242, 239));
+                g.drawLine(left, y, right, y);
+            }
+
+            int n = rows.size();
+            double slot = (right - left) / (double) n;
+            int barW = (int) Math.max(18, Math.min(70, slot * 0.45));
+            int fullH = bottom - top - 22;
 
             double max = 0;
             for (Bar bar : rows) {
@@ -900,48 +931,347 @@ public class HomePanel extends JPanel {
             }
 
             float eased = 1f - (float) Math.pow(1f - progress, 3);
-            int y = 78;
 
-            for (Bar bar : rows) {
-                g.setFont(font(Font.BOLD, 12));
-                FontMetrics fm = g.getFontMetrics();
+            for (int i = 0; i < n; i++) {
+                Bar bar = rows.get(i);
+                double cx = left + slot * i + slot / 2;
+                int bx = (int) Math.round(cx - barW / 2.0);
 
-                int valueWidth = fm.stringWidth(bar.value);
-                int available = Math.max(0, right - left - valueWidth - 16);
+                g.setColor(alpha(bar.color, 28));
+                g.fillRoundRect(bx, bottom - fullH, barW, fullH, 16, 16);
 
-                g.setColor(FOREST);
-                g.drawString(clip(bar.label, fm, available), left, y + 13);
-
-                g.setColor(bar.color.darker());
-                g.drawString(bar.value, right - valueWidth, y + 13);
-
-                int barY = y + 23;
-                int barWidth = Math.max(0, right - left);
-
-                g.setColor(new Color(232, 234, 223));
-                g.fillRoundRect(left, barY, barWidth, 8, 8, 8);
-
-                if (max > 0 && bar.magnitude > 0 && barWidth > 0) {
-                    int filled = (int) Math.round(
-                            barWidth * (bar.magnitude / max) * eased
-                    );
-                    filled = Math.max(1, Math.min(barWidth, filled));
-
-                    g.setPaint(new GradientPaint(
-                            left, 0,
-                            new Color(
-                                    bar.color.getRed(),
-                                    bar.color.getGreen(),
-                                    bar.color.getBlue(),
-                                    150
-                            ),
-                            left + filled, 0,
-                            bar.color
-                    ));
-                    g.fillRoundRect(left, barY, filled, 8, 8, 8);
+                int bh = max > 0 ? (int) Math.round(fullH * (bar.magnitude / max) * eased) : 0;
+                if (bar.magnitude > 0) {
+                    bh = Math.max(4, bh);
                 }
 
-                y += 46;
+                if (bh > 0) {
+                    g.setPaint(new GradientPaint(
+                            0, bottom - bh, alpha(bar.color, 170),
+                            0, bottom, bar.color
+                    ));
+                    g.fillRoundRect(bx, bottom - bh, barW, bh, 16, 16);
+                }
+
+                g.setFont(font(Font.BOLD, 12));
+                g.setColor(bar.color.darker());
+                FontMetrics fm = g.getFontMetrics();
+                String value = clip(bar.value, fm, (int) slot - 6);
+                g.drawString(value, (float) (cx - fm.stringWidth(value) / 2.0), bottom - bh - 8);
+
+                g.setFont(font(Font.PLAIN, 12));
+                g.setColor(MUTED);
+                fm = g.getFontMetrics();
+                String label = clip(bar.label, fm, (int) slot - 8);
+                g.drawString(label, (float) (cx - fm.stringWidth(label) / 2.0), bottom + 22);
+            }
+
+            g.dispose();
+        }
+    }
+
+    private static class AreaChart extends Surface {
+        private final String title;
+        private final String subtitle;
+        private final String emptyText;
+        private final Timer animation;
+
+        private List<CropRow> rows = new ArrayList<>();
+        private boolean ready;
+        private float progress = 1f;
+
+        AreaChart(String title, String subtitle, String emptyText) {
+            this.title = title;
+            this.subtitle = subtitle;
+            this.emptyText = emptyText;
+
+            animation = new Timer(16, e -> {
+                progress += 0.03f;
+                if (progress >= 1f) {
+                    progress = 1f;
+                    ((Timer) e.getSource()).stop();
+                }
+                repaint();
+            });
+        }
+
+        void setRows(List<CropRow> rows) {
+            this.rows = new ArrayList<>(rows);
+            ready = true;
+            progress = 0f;
+            animation.restart();
+        }
+
+        private static Path2D curve(double[] xs, double[] ys) {
+            Path2D p = new Path2D.Double();
+            p.moveTo(xs[0], ys[0]);
+            int n = xs.length;
+            for (int i = 0; i < n - 1; i++) {
+                int i0 = Math.max(0, i - 1);
+                int i2 = i + 1;
+                int i3 = Math.min(n - 1, i + 2);
+                double c1x = xs[i] + (xs[i2] - xs[i0]) / 6.0;
+                double c1y = ys[i] + (ys[i2] - ys[i0]) / 6.0;
+                double c2x = xs[i2] - (xs[i3] - xs[i]) / 6.0;
+                double c2y = ys[i2] - (ys[i3] - ys[i]) / 6.0;
+                p.curveTo(c1x, c1y, c2x, c2y, xs[i2], ys[i2]);
+            }
+            return p;
+        }
+
+        @Override
+        protected void paintComponent(Graphics g0) {
+            super.paintComponent(g0);
+
+            Graphics2D g = (Graphics2D) g0.create();
+            smooth(g);
+
+            int w = getWidth();
+            int h = getHeight();
+
+            header(g, title, subtitle);
+
+            if (rows.isEmpty()) {
+                String message = ready ? emptyText : "Loading...";
+                g.setFont(font(Font.PLAIN, 13));
+                g.setColor(MUTED);
+                FontMetrics fm = g.getFontMetrics();
+                String shown = clip(message, fm, Math.max(0, w - 44));
+                g.drawString(shown, Math.max(24, (w - fm.stringWidth(shown)) / 2), h / 2 + 12);
+                g.dispose();
+                return;
+            }
+
+            int n = rows.size();
+            int left = 44;
+            int right = w - 44;
+            int top = 104;
+            int bottom = h - 52;
+
+            double minV = 0;
+            double maxV = 0;
+            for (CropRow row : rows) {
+                minV = Math.min(minV, row.profit);
+                maxV = Math.max(maxV, row.profit);
+            }
+            if (maxV - minV < 1e-9) {
+                maxV = minV + 1;
+            }
+
+            double[] xs = new double[n];
+            double[] ys = new double[n];
+            int best = 0;
+
+            for (int i = 0; i < n; i++) {
+                xs[i] = n == 1 ? (left + right) / 2.0 : left + (right - left) * (double) i / (n - 1);
+                ys[i] = bottom - (rows.get(i).profit - minV) / (maxV - minV) * (bottom - top);
+                if (rows.get(i).profit > rows.get(best).profit) {
+                    best = i;
+                }
+            }
+
+            g.setStroke(new BasicStroke(1f));
+            for (int k = 0; k <= 4; k++) {
+                int y = top + (bottom - top) * k / 4;
+                g.setColor(k == 4 ? new Color(214, 222, 216) : new Color(238, 242, 239));
+                g.drawLine(left - 14, y, right + 14, y);
+            }
+
+            g.setFont(font(Font.PLAIN, 12));
+            g.setColor(MUTED);
+            FontMetrics fm = g.getFontMetrics();
+            for (int i = 0; i < n; i++) {
+                String label = clip(rows.get(i).name, fm, 96);
+                int lx = (int) Math.round(xs[i] - fm.stringWidth(label) / 2.0);
+                lx = Math.max(8, Math.min(w - 8 - fm.stringWidth(label), lx));
+                g.drawString(label, lx, bottom + 24);
+            }
+
+            float eased = 1f - (float) Math.pow(1f - progress, 3);
+
+            Graphics2D c = (Graphics2D) g.create();
+            c.clipRect(0, 0, (int) (w * eased) + 1, h);
+
+            if (n > 1) {
+                Path2D line = curve(xs, ys);
+
+                Path2D fill = new Path2D.Double(line);
+                fill.lineTo(xs[n - 1], bottom);
+                fill.lineTo(xs[0], bottom);
+                fill.closePath();
+
+                c.setPaint(new GradientPaint(0, top, alpha(GREEN, 120), 0, bottom, alpha(GREEN, 6)));
+                c.fill(fill);
+
+                c.setColor(GREEN);
+                c.setStroke(new BasicStroke(3f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                c.draw(line);
+            }
+
+            c.setColor(alpha(FOREST, 60));
+            c.setStroke(new BasicStroke(1f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10f, new float[]{4f, 4f}, 0f));
+            c.drawLine((int) xs[best], (int) ys[best], (int) xs[best], bottom);
+
+            for (int i = 0; i < n; i++) {
+                int r = i == best ? 7 : 5;
+                c.setColor(Color.WHITE);
+                c.fillOval((int) (xs[i] - r), (int) (ys[i] - r), r * 2, r * 2);
+                c.setColor(rows.get(i).profit >= 0 ? GREEN : RED);
+                c.setStroke(new BasicStroke(2.4f));
+                c.drawOval((int) (xs[i] - r), (int) (ys[i] - r), r * 2, r * 2);
+            }
+
+            String pin = signedMoney(rows.get(best).profit);
+            c.setFont(font(Font.BOLD, 12));
+            FontMetrics pm = c.getFontMetrics();
+            int bw = pm.stringWidth(pin) + 22;
+            int bh = 26;
+            int bx = (int) Math.round(xs[best] - bw / 2.0);
+            bx = Math.max(8, Math.min(w - 8 - bw, bx));
+            int by = (int) Math.round(ys[best]) - 8 - 6 - bh;
+
+            c.setColor(FOREST);
+            c.fillRoundRect(bx, by, bw, bh, 12, 12);
+
+            Path2D tip = new Path2D.Double();
+            tip.moveTo(xs[best] - 6, by + bh - 1);
+            tip.lineTo(xs[best] + 6, by + bh - 1);
+            tip.lineTo(xs[best], by + bh + 6);
+            tip.closePath();
+            c.fill(tip);
+
+            c.setColor(Color.WHITE);
+            centered(c, pin, bx + bw / 2.0, by + bh / 2.0);
+
+            c.dispose();
+            g.dispose();
+        }
+    }
+
+    private static class MonthCalendar extends Surface {
+        private YearMonth month = YearMonth.now();
+        private LocalDate selected = LocalDate.now();
+        private final Rectangle prev = new Rectangle();
+        private final Rectangle next = new Rectangle();
+        private final Rectangle[] cells = new Rectangle[42];
+        private final LocalDate[] dates = new LocalDate[42];
+
+        MonthCalendar() {
+            addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    if (prev.contains(e.getPoint())) {
+                        month = month.minusMonths(1);
+                        repaint();
+                        return;
+                    }
+                    if (next.contains(e.getPoint())) {
+                        month = month.plusMonths(1);
+                        repaint();
+                        return;
+                    }
+                    for (int i = 0; i < cells.length; i++) {
+                        if (cells[i] != null && cells[i].contains(e.getPoint())) {
+                            selected = dates[i];
+                            month = YearMonth.from(selected);
+                            repaint();
+                            return;
+                        }
+                    }
+                }
+            });
+        }
+
+        private void arrow(Graphics2D g, Rectangle r, boolean left) {
+            g.setColor(new Color(240, 246, 242));
+            g.fillOval(r.x, r.y, r.width, r.height);
+            g.setColor(FOREST);
+            g.setStroke(new BasicStroke(2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            int cx = r.x + r.width / 2;
+            int cy = r.y + r.height / 2;
+            if (left) {
+                g.drawLine(cx + 2, cy - 5, cx - 3, cy);
+                g.drawLine(cx - 3, cy, cx + 2, cy + 5);
+            } else {
+                g.drawLine(cx - 2, cy - 5, cx + 3, cy);
+                g.drawLine(cx + 3, cy, cx - 2, cy + 5);
+            }
+        }
+
+        @Override
+        protected void paintComponent(Graphics g0) {
+            super.paintComponent(g0);
+
+            Graphics2D g = (Graphics2D) g0.create();
+            smooth(g);
+
+            int w = getWidth();
+            int h = getHeight();
+
+            g.setColor(GOLD);
+            g.fillRoundRect(24, 24, 4, 24, 4, 4);
+
+            g.setFont(font(Font.BOLD, 16));
+            g.setColor(FOREST);
+            String title = month.getMonth().getDisplayName(TextStyle.FULL, Locale.ENGLISH) + " " + month.getYear();
+            g.drawString(title, 38, 42);
+
+            prev.setBounds(w - 88, 24, 28, 28);
+            next.setBounds(w - 54, 24, 28, 28);
+            arrow(g, prev, true);
+            arrow(g, next, false);
+
+            int gx = 20;
+            double cellW = (w - 40) / 7.0;
+            int weekY = 80;
+            int gridTop = 96;
+            double cellH = (h - gridTop - 18) / 6.0;
+
+            String[] names = {"Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"};
+            g.setFont(font(Font.BOLD, 11));
+            g.setColor(MUTED);
+            for (int i = 0; i < 7; i++) {
+                centered(g, names[i], gx + cellW * (i + 0.5), weekY);
+            }
+
+            LocalDate first = month.atDay(1);
+            LocalDate start = first.minusDays(first.getDayOfWeek().getValue() - 1);
+            LocalDate today = LocalDate.now();
+
+            for (int i = 0; i < 42; i++) {
+                LocalDate date = start.plusDays(i);
+                int row = i / 7;
+                int col = i % 7;
+                double cx = gx + cellW * (col + 0.5);
+                double cy = gridTop + cellH * (row + 0.5);
+
+                dates[i] = date;
+                cells[i] = new Rectangle(
+                        (int) (cx - cellW / 2), (int) (cy - cellH / 2),
+                        (int) cellW, (int) cellH
+                );
+
+                double r = Math.min(17, Math.min(cellW, cellH) / 2 - 2);
+                boolean inMonth = YearMonth.from(date).equals(month);
+                boolean isToday = date.equals(today);
+                boolean isSelected = date.equals(selected);
+
+                if (isToday) {
+                    g.setColor(GREEN);
+                    g.fillOval((int) (cx - r), (int) (cy - r), (int) (r * 2), (int) (r * 2));
+                    g.setColor(Color.WHITE);
+                    g.setFont(font(Font.BOLD, 12));
+                } else if (isSelected) {
+                    g.setColor(alpha(GREEN, 36));
+                    g.fillOval((int) (cx - r), (int) (cy - r), (int) (r * 2), (int) (r * 2));
+                    g.setColor(FOREST);
+                    g.setFont(font(Font.BOLD, 12));
+                } else {
+                    g.setColor(inMonth ? FOREST : new Color(182, 190, 184));
+                    g.setFont(font(Font.PLAIN, 12));
+                }
+
+                centered(g, String.valueOf(date.getDayOfMonth()), cx, cy);
             }
 
             g.dispose();
@@ -949,13 +1279,13 @@ public class HomePanel extends JPanel {
     }
 
     private static class DirectoryButton extends JButton {
-        private final String number;
+        private final String iconKey;
         private final String title;
         private final String description;
         private boolean hover;
 
-        DirectoryButton(int index, String title, String description) {
-            this.number = String.format(Locale.US, "%02d", index);
+        DirectoryButton(String iconKey, String title, String description) {
+            this.iconKey = iconKey;
             this.title = title;
             this.description = description;
 
@@ -990,17 +1320,22 @@ public class HomePanel extends JPanel {
             int w = getWidth();
             int h = getHeight();
 
-            g.setColor(hover ? new Color(233, 241, 230) : Color.WHITE);
-            g.fillRoundRect(0, 0, w - 1, h - 1, 10, 10);
+            g.setColor(hover ? new Color(236, 246, 240) : new Color(248, 250, 249));
+            g.fillRoundRect(0, 0, w - 1, h - 1, 16, 16);
 
-            g.setColor(hover ? new Color(153, 183, 156) : LINE);
-            g.drawRoundRect(0, 0, w - 1, h - 1, 10, 10);
+            g.setColor(hover ? new Color(153, 196, 170) : new Color(232, 237, 233));
+            g.drawRoundRect(0, 0, w - 1, h - 1, 16, 16);
 
-            g.setFont(font(Font.BOLD, 11));
-            g.setColor(GOLD);
-            g.drawString(number, 13, h / 2 + 4);
+            int cs = Math.min(34, h - 12);
+            int cx = 10;
+            int cy = (h - cs) / 2;
 
-            int textX = 42;
+            g.setColor(hover ? GREEN : new Color(220, 239, 229));
+            g.fillRoundRect(cx, cy, cs, cs, 12, 12);
+            UITheme.Icons.paint(g, iconKey, cx + (cs - 18) / 2.0, cy + (cs - 18) / 2.0, 18,
+                    hover ? Color.WHITE : FOREST_LIGHT);
+
+            int textX = cx + cs + 14;
             int available = Math.max(0, w - textX - 30);
 
             g.setFont(font(Font.BOLD, 12));
@@ -1017,17 +1352,13 @@ public class HomePanel extends JPanel {
             int arrowY = h / 2;
 
             g.setColor(hover ? FOREST : new Color(166, 176, 164));
-            g.setStroke(new BasicStroke(
-                    1.6f,
-                    BasicStroke.CAP_ROUND,
-                    BasicStroke.JOIN_ROUND
-            ));
+            g.setStroke(new BasicStroke(1.6f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
             g.drawLine(arrowX - 4, arrowY - 4, arrowX, arrowY);
             g.drawLine(arrowX, arrowY, arrowX - 4, arrowY + 4);
 
             if (hasFocus()) {
                 g.setColor(GOLD);
-                g.drawRoundRect(3, 3, w - 7, h - 7, 8, 8);
+                g.drawRoundRect(3, 3, w - 7, h - 7, 12, 12);
             }
 
             g.dispose();

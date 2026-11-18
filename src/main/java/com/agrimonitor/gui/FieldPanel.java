@@ -11,6 +11,7 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionAdapter;
+import java.awt.geom.Ellipse2D;
 import java.awt.geom.RoundRectangle2D;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
@@ -19,17 +20,17 @@ import java.util.function.Consumer;
 
 public class FieldPanel extends JPanel {
 
-    private static final Color SEL = new Color(222, 236, 228);
-    private static final Color ZEBRA = new Color(250, 247, 240);
+    private static final Color SEL = new Color(214, 240, 228);
+    private static final Color ZEBRA = new Color(247, 250, 248);
     private static final Color[] PALETTE = {
-            new Color(74, 140, 98),
+            new Color(5, 150, 105),
             new Color(122, 168, 78),
             new Color(52, 120, 110),
             new Color(184, 152, 68),
             new Color(96, 132, 72),
-            new Color(60, 104, 84),
+            new Color(6, 110, 80),
             new Color(150, 182, 108),
-            new Color(206, 170, 80),
+            new Color(217, 160, 40),
             new Color(80, 150, 140),
             new Color(116, 112, 72)
     };
@@ -131,8 +132,8 @@ public class FieldPanel extends JPanel {
         JComponent form = UIKit.formCard("Field Details", body, footer);
 
         TipPanel tip = new TipPanel();
-        tip.setPreferredSize(new Dimension(100, 86));
-        tip.setMaximumSize(new Dimension(Integer.MAX_VALUE, 86));
+        tip.setPreferredSize(new Dimension(100, 90));
+        tip.setMaximumSize(new Dimension(Integer.MAX_VALUE, 90));
         tip.setAlignmentX(Component.LEFT_ALIGNMENT);
         form.setAlignmentX(Component.LEFT_ALIGNMENT);
 
@@ -330,23 +331,34 @@ public class FieldPanel extends JPanel {
             int w = getWidth();
             int h = getHeight();
 
-            g.setColor(new Color(236, 244, 236));
-            g.fillRoundRect(0, 0, w - 1, h - 1, 16, 16);
-            g.setColor(new Color(196, 214, 200));
-            g.drawRoundRect(0, 0, w - 1, h - 1, 16, 16);
-            g.setColor(new Color(46, 110, 84));
-            g.fillRoundRect(0, 14, 4, h - 28, 4, 4);
+            g.setColor(new Color(0, 0, 0, 10));
+            g.fill(new RoundRectangle2D.Double(1, 3, w - 2, h - 4, 22, 22));
+            g.setColor(Color.WHITE);
+            g.fill(new RoundRectangle2D.Double(0, 0, w - 1, h - 3, 22, 22));
+            g.setColor(UITheme.BORDER_COLOR);
+            g.draw(new RoundRectangle2D.Double(0.5, 0.5, w - 2, h - 4, 22, 22));
 
+            int bx = 16;
+            int bd = 34;
+            int by = (h - 3 - bd) / 2;
+            g.setColor(new Color(UITheme.ACCENT.getRed(), UITheme.ACCENT.getGreen(), UITheme.ACCENT.getBlue(), 46));
+            g.fill(new Ellipse2D.Double(bx, by, bd, bd));
+            g.setColor(UITheme.ACCENT);
+            g.setFont(new Font(UIKit.FAMILY, Font.BOLD, 18));
+            FontMetrics bfm = g.getFontMetrics();
+            g.drawString("i", bx + (bd - bfm.stringWidth("i")) / 2, by + (bd - bfm.getHeight()) / 2 + bfm.getAscent());
+
+            int tx = bx + bd + 14;
             g.setFont(new Font(UIKit.FAMILY, Font.BOLD, 13));
-            g.setColor(new Color(31, 80, 58));
-            g.drawString("Quick tip", 20, 32);
+            g.setColor(UITheme.PRIMARY_DARK);
+            g.drawString("Quick tip", tx, 33);
 
             g.setFont(new Font(UIKit.FAMILY, Font.PLAIN, 12));
-            g.setColor(new Color(70, 104, 86));
+            g.setColor(UITheme.TEXT_LIGHT);
             FontMetrics fm = g.getFontMetrics();
-            int maxW = w - 34;
-            g.drawString(clip("Click a land plot or a table row", fm, maxW), 20, 52);
-            g.drawString(clip("to load that field into the form.", fm, maxW), 20, 70);
+            int maxW = w - tx - 12;
+            g.drawString(clip("Click a land plot or a table row", fm, maxW), tx, 52);
+            g.drawString(clip("to load that field into the form.", fm, maxW), tx, 69);
             g.dispose();
         }
     }
@@ -388,10 +400,11 @@ public class FieldPanel extends JPanel {
             if (frac > 0) {
                 double bw = Math.max(10, (getWidth() - 16) * frac);
                 double bh = getHeight() - 14;
-                int alpha = selected ? 80 : 56;
-                g.setPaint(new GradientPaint(8, 0, new Color(74, 140, 98, alpha / 3),
-                        (float) (8 + bw), 0, new Color(74, 140, 98, alpha + 20)));
-                g.fill(new RoundRectangle2D.Double(8, 7, bw, bh, 10, 10));
+                int alpha = selected ? 90 : 62;
+                Color p = UITheme.PRIMARY;
+                g.setPaint(new GradientPaint(8, 0, new Color(p.getRed(), p.getGreen(), p.getBlue(), alpha / 3),
+                        (float) (8 + bw), 0, new Color(p.getRed(), p.getGreen(), p.getBlue(), alpha + 20)));
+                g.fill(new RoundRectangle2D.Double(8, 7, bw, bh, bh, bh));
             }
             super.paintComponent(g);
             g.dispose();
@@ -422,11 +435,12 @@ public class FieldPanel extends JPanel {
             int ph = 24;
             int px = 12;
             int py = (getHeight() - ph) / 2;
-            g.setColor(new Color(46, 110, 84, 28));
+            Color p = UITheme.PRIMARY;
+            g.setColor(new Color(p.getRed(), p.getGreen(), p.getBlue(), 28));
             g.fill(new RoundRectangle2D.Double(px, py, pw, ph, ph, ph));
-            g.setColor(new Color(46, 110, 84, 90));
+            g.setColor(new Color(p.getRed(), p.getGreen(), p.getBlue(), 90));
             g.draw(new RoundRectangle2D.Double(px + 0.5, py + 0.5, pw - 1, ph - 1, ph, ph));
-            g.setColor(new Color(31, 80, 58));
+            g.setColor(UITheme.PRIMARY_DARK);
             g.drawString(shown, px + 11, py + (ph - fm.getHeight()) / 2 + fm.getAscent());
             g.dispose();
         }
@@ -454,7 +468,7 @@ public class FieldPanel extends JPanel {
             g.fillRect(0, 0, getWidth(), getHeight());
             int cy = getHeight() / 2;
             g.setColor(swatch);
-            g.fill(new RoundRectangle2D.Double(12, cy - 6, 12, 12, 4, 4));
+            g.fill(new Ellipse2D.Double(12, cy - 6, 12, 12));
             g.setFont(UIKit.BODY_BOLD);
             FontMetrics fm = g.getFontMetrics();
             g.setColor(UITheme.TEXT_DARK);
@@ -465,7 +479,7 @@ public class FieldPanel extends JPanel {
 
     private static class LandCard extends JPanel {
         private static final int MAX_TILES = 10;
-        private static final int GAP = 5;
+        private static final int GAP = 6;
         private static final int MIN_W = 22;
 
         private final DecimalFormat f = new DecimalFormat("#,##0.##");
@@ -597,7 +611,7 @@ public class FieldPanel extends JPanel {
             int h = getHeight();
 
             RoundRectangle2D shape = new RoundRectangle2D.Double(0, 0, w, h, 22, 22);
-            g.setPaint(new GradientPaint(0, 0, new Color(20, 52, 40), w, h, new Color(54, 114, 82)));
+            g.setPaint(new GradientPaint(0, 0, UITheme.PRIMARY_DARK, w, h, UITheme.PRIMARY));
             g.fill(shape);
             g.setClip(shape);
 
@@ -606,25 +620,31 @@ public class FieldPanel extends JPanel {
             g.setColor(new Color(255, 255, 255, 8));
             g.fillOval(-70, h - 80, 240, 240);
 
-            int lx = 30;
-            g.setColor(new Color(223, 196, 120));
-            for (int i = 0; i < 2; i++) {
-                for (int j = 0; j < 2; j++) {
-                    g.fill(new RoundRectangle2D.Double(lx + i * 8, 22 + j * 8, 6, 6, 2, 2));
-                }
-            }
-            g.setFont(new Font(UIKit.FAMILY, Font.BOLD, 11));
-            g.drawString("TOTAL AREA", lx + 24, 36);
+            g.setColor(UITheme.ACCENT);
+            g.fillRect(0, h - 3, w, 3);
 
-            g.setFont(new Font(UIKit.FAMILY, Font.BOLD, 38));
+            int lx = 30;
+            int cd = 38;
+            int cy0 = 20;
+            g.setColor(new Color(255, 255, 255, 34));
+            g.fill(new Ellipse2D.Double(lx - 4, cy0 - 4, cd + 8, cd + 8));
+            g.setPaint(new GradientPaint(0, cy0, new Color(240, 200, 110), 0, cy0 + cd, UITheme.ACCENT));
+            g.fill(new Ellipse2D.Double(lx, cy0, cd, cd));
+            UITheme.Icons.paint(g, "field", lx + (cd - 20) / 2, cy0 + (cd - 20) / 2, 20, UITheme.PRIMARY_DARK);
+
+            g.setFont(new Font(UIKit.FAMILY, Font.BOLD, 11));
+            g.setColor(new Color(252, 211, 120));
+            g.drawString("TOTAL AREA", lx + cd + 14, cy0 + cd / 2 + 4);
+
+            g.setFont(new Font(UIKit.FAMILY, Font.BOLD, 36));
             g.setColor(Color.WHITE);
-            g.drawString(f.format(total), lx, 86);
+            g.drawString(f.format(total), lx, 100);
 
             g.setFont(new Font(UIKit.FAMILY, Font.PLAIN, 13));
             g.setColor(new Color(206, 228, 214));
-            g.drawString(count + (count == 1 ? " field" : " fields"), lx, 112);
+            g.drawString(count + (count == 1 ? " field" : " fields"), lx, 122);
             String avg = count == 0 ? "No data yet" : "Average " + f.format(total / count) + " per field";
-            g.drawString(avg, lx, 132);
+            g.drawString(avg, lx, 141);
 
             if (w >= 560) {
                 int x0 = plotLeft();
@@ -636,7 +656,7 @@ public class FieldPanel extends JPanel {
                 g.drawLine(x0 - 22, 22, x0 - 22, h - 22);
 
                 g.setFont(new Font(UIKit.FAMILY, Font.BOLD, 11));
-                g.setColor(new Color(223, 196, 120));
+                g.setColor(new Color(252, 211, 120));
                 g.drawString("LAND DISTRIBUTION", x0, 36);
 
                 if (!shown.isEmpty()) {
@@ -664,7 +684,7 @@ public class FieldPanel extends JPanel {
                         boolean hot = i == hover;
                         double curH = Math.max(4, th * eased);
                         double by = ty + th - curH;
-                        RoundRectangle2D tile = new RoundRectangle2D.Double(x, by, ws[i], curH, 14, 14);
+                        RoundRectangle2D tile = new RoundRectangle2D.Double(x, by, ws[i], curH, 16, 16);
 
                         Color top = hot ? c.brighter() : c;
                         Color bot = hot ? c : c.darker();
@@ -681,9 +701,9 @@ public class FieldPanel extends JPanel {
                         g.setClip(old);
 
                         if (hot) {
-                            g.setColor(new Color(246, 224, 150));
+                            g.setColor(new Color(252, 211, 120));
                             g.setStroke(new BasicStroke(2f));
-                            g.draw(new RoundRectangle2D.Double(x + 1, by + 1, ws[i] - 2, curH - 2, 13, 13));
+                            g.draw(new RoundRectangle2D.Double(x + 1, by + 1, ws[i] - 2, curH - 2, 15, 15));
                         }
 
                         if (eased > 0.9f && ws[i] >= 64) {

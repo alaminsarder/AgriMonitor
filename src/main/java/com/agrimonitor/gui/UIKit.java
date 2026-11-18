@@ -26,11 +26,11 @@ public final class UIKit {
     static final Font BODY_BOLD = new Font(FAMILY, Font.BOLD, 13);
     static final Font LABEL = new Font(FAMILY, Font.PLAIN, 12);
     static final Font SMALL = new Font(FAMILY, Font.PLAIN, 12);
-    static final Font HEADING = new Font(FAMILY, Font.BOLD, 15);
+    static final Font HEADING = new Font(FAMILY, Font.BOLD, 16);
 
     private static final DecimalFormat NUM = new DecimalFormat("#,##0.##");
-    private static final Color ZEBRA = new Color(250, 247, 240);
-    private static final Color SELECT = new Color(222, 236, 228);
+    private static final Color ZEBRA = new Color(247, 250, 248);
+    private static final Color SELECT = new Color(214, 240, 228);
 
     private UIKit() {
     }
@@ -60,16 +60,21 @@ public final class UIKit {
             int w = getWidth();
             int h = getHeight();
             for (int i = 0; i < 4; i++) {
-                g2.setColor(new Color(60, 50, 20, 7));
-                g2.fillRoundRect(i, i + 1, w - 2 * i, h - 2 * i - 1, 20, 20);
+                g2.setColor(new Color(31, 61, 51, 7));
+                g2.fillRoundRect(i, i + 1, w - 2 * i, h - 2 * i - 1, 26, 26);
             }
             g2.setColor(Color.WHITE);
-            g2.fillRoundRect(4, 3, w - 8, h - 9, 16, 16);
-            g2.setColor(UITheme.BORDER_COLOR);
-            g2.drawRoundRect(4, 3, w - 9, h - 10, 16, 16);
+            g2.fillRoundRect(4, 3, w - 8, h - 9, 22, 22);
+            g2.setColor(new Color(236, 240, 238));
+            g2.drawRoundRect(4, 3, w - 9, h - 10, 22, 22);
             if (accent != null) {
+                int size = 30;
+                int x = w - 4 - 18 - size;
+                int y = 3 + 16;
+                g2.setColor(new Color(accent.getRed(), accent.getGreen(), accent.getBlue(), 40));
+                g2.fillOval(x, y, size, size);
                 g2.setColor(accent);
-                g2.fillRoundRect(4, 3, 6, h - 9, 6, 6);
+                g2.fillOval(x + 10, y + 10, 10, 10);
             }
             g2.dispose();
         }
@@ -79,12 +84,28 @@ public final class UIKit {
         return new CardPanel(layout, 20, 24, null);
     }
 
+    static class HeadingLabel extends JLabel {
+        HeadingLabel(String text) {
+            super(text);
+            setFont(HEADING);
+            setForeground(UITheme.TEXT_DARK);
+            setBorder(new EmptyBorder(0, 16, 0, 0));
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            int bh = Math.min(getHeight(), 20);
+            g2.setPaint(new GradientPaint(0, 0, UITheme.ACCENT, 0, getHeight(), UITheme.PRIMARY));
+            g2.fillRoundRect(0, (getHeight() - bh) / 2, 5, bh, 5, 5);
+            g2.dispose();
+            super.paintComponent(g);
+        }
+    }
+
     static JLabel heading(String text) {
-        JLabel l = new JLabel(text);
-        l.setFont(HEADING);
-        l.setForeground(UITheme.PRIMARY_DARK);
-        l.setBorder(new CompoundBorder(new MatteBorder(0, 3, 0, 0, UITheme.ACCENT), new EmptyBorder(0, 10, 0, 0)));
-        return l;
+        return new HeadingLabel(text);
     }
 
     static JPanel statCard(String title, JLabel value, Color accent) {
@@ -173,7 +194,7 @@ public final class UIKit {
         JPanel c = card(new BorderLayout(0, 14));
         JPanel head = new JPanel(new BorderLayout());
         head.setOpaque(false);
-        head.setBorder(new CompoundBorder(new MatteBorder(0, 0, 1, 0, UITheme.BORDER_COLOR), new EmptyBorder(0, 0, 10, 0)));
+        head.setBorder(new CompoundBorder(new MatteBorder(0, 0, 1, 0, new Color(236, 240, 238)), new EmptyBorder(0, 0, 12, 0)));
         head.add(heading(title), BorderLayout.WEST);
         c.add(head, BorderLayout.NORTH);
         c.add(body, BorderLayout.CENTER);
@@ -214,11 +235,11 @@ public final class UIKit {
         if (t.getTableHeader() != null) {
             t.getTableHeader().setFont(BODY_BOLD);
         }
-        t.setRowHeight(34);
+        t.setRowHeight(36);
         t.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
         t.setShowVerticalLines(false);
         t.setShowHorizontalLines(true);
-        t.setGridColor(new Color(238, 233, 220));
+        t.setGridColor(new Color(240, 244, 241));
         t.setIntercellSpacing(new Dimension(0, 1));
         t.setFillsViewportHeight(true);
     }
@@ -303,7 +324,7 @@ public final class UIKit {
     }
 
     static void styleScroll(JScrollPane sp) {
-        sp.setBorder(new LineBorder(UITheme.BORDER_COLOR));
+        sp.setBorder(new LineBorder(new Color(236, 240, 238)));
         sp.getViewport().setBackground(Color.WHITE);
         sp.getVerticalScrollBar().setUI(new SlimScrollBarUI());
         sp.getHorizontalScrollBar().setUI(new SlimScrollBarUI());
@@ -374,8 +395,8 @@ public final class UIKit {
             setFont(BODY);
             setForeground(UITheme.TEXT_DARK);
             setCaretColor(UITheme.PRIMARY);
-            setBorder(new EmptyBorder(7, 36, 7, 14));
-            setPreferredSize(new Dimension(230, 34));
+            setBorder(new EmptyBorder(7, 38, 7, 14));
+            setPreferredSize(new Dimension(230, 36));
             addFocusListener(new FocusAdapter() {
                 @Override
                 public void focusGained(FocusEvent e) {
@@ -396,19 +417,19 @@ public final class UIKit {
             g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
             int w = getWidth();
             int h = getHeight();
-            g2.setColor(ZEBRA);
+            g2.setColor(isFocusOwner() ? Color.WHITE : ZEBRA);
             g2.fillRoundRect(0, 0, w - 1, h - 1, h, h);
-            g2.setColor(isFocusOwner() ? UITheme.ACCENT : UITheme.BORDER_COLOR);
+            g2.setColor(isFocusOwner() ? UITheme.PRIMARY : UITheme.BORDER_COLOR);
             g2.drawRoundRect(0, 0, w - 1, h - 1, h, h);
             g2.setColor(UITheme.TEXT_LIGHT);
             g2.setStroke(new BasicStroke(1.6f));
-            g2.drawOval(14, h / 2 - 6, 9, 9);
-            g2.drawLine(22, h / 2 + 2, 26, h / 2 + 6);
+            g2.drawOval(15, h / 2 - 6, 9, 9);
+            g2.drawLine(23, h / 2 + 2, 27, h / 2 + 6);
             if (getText().isEmpty()) {
                 g2.setFont(BODY);
-                g2.setColor(new Color(160, 160, 150));
+                g2.setColor(new Color(160, 168, 162));
                 FontMetrics fm = g2.getFontMetrics();
-                g2.drawString(hint, 36, (h - fm.getHeight()) / 2 + fm.getAscent());
+                g2.drawString(hint, 38, (h - fm.getHeight()) / 2 + fm.getAscent());
             }
             g2.dispose();
             super.paintComponent(g);
@@ -419,7 +440,7 @@ public final class UIKit {
         @Override
         protected void configureScrollBarColors() {
             super.configureScrollBarColors();
-            thumbColor = new Color(200, 192, 170);
+            thumbColor = new Color(190, 205, 197);
         }
 
         @Override
@@ -518,7 +539,7 @@ public final class UIKit {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
                 g2.setFont(new Font(FAMILY, Font.PLAIN, 13));
-                g2.setColor(new Color(165, 160, 145));
+                g2.setColor(new Color(160, 168, 162));
                 String s = "No records found";
                 FontMetrics fm = g2.getFontMetrics();
                 g2.drawString(s, (getWidth() - fm.stringWidth(s)) / 2, getHeight() / 2 + fm.getAscent() / 2 + 10);

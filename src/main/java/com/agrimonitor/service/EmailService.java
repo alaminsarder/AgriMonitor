@@ -18,16 +18,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.Base64;
 import java.util.UUID;
 
-/**
- * Sends e-mail through any SMTP server (Gmail by default) using only the JDK,
- * so no extra jar is needed.
- *
- * Settings come from the .env file (or environment variables):
- *   SMTP_EMAIL     sender address (for Gmail: the Gmail address)
- *   SMTP_PASSWORD  for Gmail this must be an App Password
- *   SMTP_HOST      optional, default smtp.gmail.com
- *   SMTP_PORT      optional, default 465 (implicit SSL). Any other port uses STARTTLS.
- */
 public class EmailService {
 
     private static final int TIMEOUT_MS = 15000;
