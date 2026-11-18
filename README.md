@@ -1,120 +1,174 @@
-# AgriMonitor – Smart Agricultural Monitoring System
+# 🌾 AgriMonitor — Smart Agriculture Management System
 
-AgriMonitor is a Java-based desktop application with a MongoDB Atlas cloud backend that helps farmers and farm supervisors manage field, crop, irrigation, pesticide, cost, sales, and profit-related information through an easy-to-use graphical user interface (GUI) built with Java Swing.
+A desktop-based **farm management system** built with **Java Swing**, backed by **MongoDB Atlas**, with an integrated **AI farming assistant** powered by **Google Gemini**.
 
-The system provides user authentication, agricultural record management, automatic profit/loss calculation, weather information, and report generation to support efficient farm management.
+AgriMonitor helps farmers keep every part of their farm in one place — fields, crops, irrigation, pesticide usage, costs, sales, profit/loss, weather — and get **AI advice based on their own real farm data**.
 
-## Features
+---
 
-- User Login and Registration
-- Private and Isolated User Data
-- Field and Crop Management
-- Irrigation Record Tracking
-- Pesticide Usage Log
-- Cost and Sales Management
-- Automatic Profit/Loss Calculation
-- Weather Simulation with Real-Time OpenWeatherMap Data
-- Report Generation
-- Persistent Data Storage with MongoDB Atlas (Cloud Database)
-- Easy-to-Use Java Swing GUI
+## ✨ Features
 
-## Video
-https://youtu.be/H7u584VSkHY
+| Module | Description |
+|---|---|
+| 🏠 Dashboard | Overview cards with live farm statistics |
+| 🌱 Field Management | Add, edit, delete fields (name, location, area) |
+| 🌿 Crop Management | Track crops per field, variety, planting date, status |
+| 💧 Irrigation Management | Log and track irrigation events per field |
+| 🧪 Pesticide Log | Record pesticide/fertilizer applications |
+| 💰 Cost Management | Track all farming expenses by category |
+| 🛒 Sales Management | Record harvest sales and revenue |
+| 📈 Profit / Loss | Automatic profit-loss calculation from costs vs sales |
+| 🌦️ Weather | Current weather information for farm planning |
+| 🤖 AI Assistant | Gemini-powered chatbot that knows **your** fields, crops and irrigation history |
+| 📄 Report Generation | Generate farm reports |
+| 👤 Profile | Account details and session info |
 
-## Tech Stack
+### 🤖 AI Assistant highlights
 
-- **Programming Language:** Core Java
-- **GUI Framework:** Java Swing
-- **Database:** MongoDB Atlas (Cloud)
-- **Database Connectivity:** MongoDB Java Driver
-- **Weather API:** OpenWeatherMap
-- **Build and Packaging:** Java Compiler and jpackage
+- Answers using your **real farm data** (fields, crops, irrigation records) — no generic guesses
+- Chat history is **saved per user** in MongoDB (`chat_messages` collection)
+- Understands **Bangla and English**
+- Automatically adapts to different Gemini models (handles `thinkingConfig` compatibility)
 
-## How to Run
+---
 
-### Option 1: Download the Installer (Recommended)
+## 🛠️ Tech Stack
 
-1. Visit the [AgriMonitor Releases](https://github.com/alaminsarder/AgriMonitor/releases) page.
-2. Download the latest `AgriMonitor-x.x.x.exe` installer.
-3. Run the installer and follow the setup instructions.
-4. Launch AgriMonitor from the Desktop or Start Menu shortcut.
-5. Register a new account and start managing your agricultural records.
+- **Language:** Java 17 (Swing GUI, custom-drawn vector icons — no image assets)
+- **Database:** MongoDB Atlas (cloud)
+- **AI:** Google Gemini API
+- **JSON:** org.json
+- **Architecture:** DAO pattern, service layer, session management
 
-**Note:** If no installer is available, check the Releases page for the latest published version or use Option 2.
+---
 
-### Option 2: Build and Run from Source
+## 📁 Project Structure
 
-#### Prerequisites
+```
+AgriMonitor/
+├── src/main/java/com/agrimonitor/
+│   ├── Main.java                 # Application entry point
+│   ├── dao/                      # Data Access Objects (MongoDB)
+│   │   ├── FieldDAO.java
+│   │   ├── CropDAO.java
+│   │   ├── ChatHistoryDAO.java
+│   │   └── ...
+│   ├── db/                       # Database & environment
+│   │   ├── MongoDBConnection.java
+│   │   └── EnvLoader.java
+│   ├── gui/                      # Swing UI
+│   │   ├── MainFrame.java        # Sidebar, header, navigation
+│   │   ├── LoginFrame.java
+│   │   ├── HomePanel.java
+│   │   ├── FieldPanel.java
+│   │   ├── CropPanel.java
+│   │   ├── IrrigationPanel.java
+│   │   ├── PesticidePanel.java
+│   │   ├── CostPanel.java
+│   │   ├── SalesPanel.java
+│   │   ├── ProfitLossPanel.java
+│   │   ├── WeatherPanel.java
+│   │   ├── ChatPanel.java        # AI Assistant UI
+│   │   ├── ReportPanel.java
+│   │   ├── ProfilePanel.java
+│   │   ├── UITheme.java          # Colors, fonts, icons
+│   │   └── UIKit.java            # Reusable UI components
+│   ├── model/                    # Data models
+│   ├── service/                  # Business logic
+│   │   ├── AIChatService.java    # Gemini / OpenAI-compatible client
+│   │   ├── FarmContextBuilder.java  # Builds farm context for the AI
+│   │   ├── FarmAssistantPrompt.java
+│   │   ├── ProfitLossService.java
+│   │   └── EmailService.java
+│   ├── session/                  # User session
+│   └── util/                     # Helpers
+├── libs/                         # External JARs (MongoDB driver, org.json, ...)
+├── .env                          # Secrets (NOT committed to git)
+├── .env.example                  # Template for .env
+└── README.md
+```
 
-- JDK 8 or higher
-- Git
-- Required MongoDB Java Driver libraries in the `libs/` directory
-- A configured MongoDB database (local MongoDB or MongoDB Atlas)
-- An OpenWeatherMap API key for weather functionality
+---
 
-#### Step 1: Clone the Repository
+## ⚙️ Requirements
+
+- **JDK 17 or newer** (JDK 8 will NOT work)
+- Internet connection (MongoDB Atlas, Gemini API, weather)
+- Windows / Linux / macOS
+
+---
+
+## 🚀 Setup
+
+### 1. Clone the repository
 
 ```bash
 git clone https://github.com/alaminsarder/AgriMonitor.git
 cd AgriMonitor
 ```
 
-#### Step 2: Configure the Database
+### 2. Configure environment variables
 
-Configure the MongoDB connection string and required environment variables according to the project's configuration. For MongoDB Atlas, ensure that your IP address is allowed in the Atlas network access settings and that the database credentials are configured securely.
+Copy `.env.example` to `.env` and fill in your values:
 
-#### Step 3: Compile the Project
-
-Run the following command in Windows PowerShell or Command Prompt from the project root directory:
-
-```bash
-javac -cp "libs/*" -d out -encoding UTF-8 src/main/java/com/agrimonitor/*.java src/main/java/com/agrimonitor/*/*.java
+```env
+MONGODB_URI=mongodb+srv://<user>:<password>@<cluster>.mongodb.net/agrimonitor_db
+AI_PROVIDER=gemini
+AI_API_KEY=your-gemini-api-key
+AI_MODEL=gemini-flash-latest
 ```
 
-#### Step 4: Run the Application
+| Key | Description |
+|---|---|
+| `MONGODB_URI` | MongoDB Atlas connection string |
+| `AI_PROVIDER` | `gemini` (default) or an OpenAI-compatible provider |
+| `AI_API_KEY` | API key for the AI provider |
+| `AI_MODEL` | Optional — defaults to `gemini-flash-latest` |
+| `AI_BASE_URL` | Optional — only for OpenAI-compatible providers |
 
-**Required run command for Windows:**
 
-```bash
+### 3. Compile and run
+
+**Windows (PowerShell):**
+
+```powershell
+javac -cp "libs/*" -d out -encoding UTF-8 (Get-ChildItem -Recurse src -Filter *.java).FullName
 java -cp "out;libs/*" com.agrimonitor.Main
 ```
 
-Run the command from the project root directory after compilation. Make sure the `libs/` directory contains the required dependencies and that the database configuration is correct.
-
-**For Linux/macOS**, use a colon (`:`) instead of a semicolon (`;`) in the classpath:
+**Linux / macOS:**
 
 ```bash
+javac -cp "libs/*" -d out -encoding UTF-8 $(find src -name "*.java")
 java -cp "out:libs/*" com.agrimonitor.Main
 ```
 
-## Database and Configuration
+> Changing only `.env` does **not** require recompiling — just restart the app.
 
-AgriMonitor uses MongoDB for persistent data storage. The application can connect to MongoDB Atlas for cloud-based storage.
+---
 
-Keep database credentials and API keys private. Do not commit passwords, connection strings containing credentials, or API keys to the public repository.
+## 🗄️ Database
 
-## Forgot Password (email code)
+MongoDB Atlas database: **`agrimonitor_db`**
 
-Users enter an email when they register. On the login screen, **Forgot password?** emails a 6-digit code to that address (valid 10 minutes, max 5 wrong tries, 60 s between resends). After entering the code the user sets a new password. Accounts created before this feature are asked for their email the next time they sign in.
+Main collections:
 
-The app sends the email through SMTP (Gmail by default) using a sender account. Add these to the `.env` file in the project root:
+| Collection | Contents |
+|---|---|
+| `users` | Registered user accounts |
+| `fields` | Farm fields (name, location, area) |
+| `crops` | Crops linked to fields |
+| `irrigations` | Irrigation event logs |
+| `pesticides` | Pesticide application logs |
+| `costs` | Expense records |
+| `sales` | Sales records |
+| `chat_messages` | AI chat history per user (`userId`, `role`, `text`, `createdAt`) |
 
-```
-MONGODB_URI=your-mongodb-connection-string
-SMTP_EMAIL=sender-account@gmail.com
-SMTP_PASSWORD=your-16-character-gmail-app-password
-```
 
-For Gmail, turn on 2-Step Verification and create an **App Password** (Google Account > Security > App passwords). Do not use the normal Gmail password. Optional: `SMTP_HOST` (default `smtp.gmail.com`) and `SMTP_PORT` (default `465`; any other port uses STARTTLS, e.g. `587`). See `.env.example`.
+## 👨‍💻 Author
 
-## Project Team
+**Alamin Sarder** — [github.com/alaminsarder](https://github.com/alaminsarder)
 
-| Name | Roll | Student ID |
-|---|---:|---|
-| Md. Samiul Mia | 01 | 0322410105101001 |
-| Md Hasan Ruhanee Ruhan | 10 | 0322410105101010 |
-| Md AL Amin Sarder | 11 | 0322410105101011 |
+## 📄 License
 
-## License
-
-This project is developed for academic purposes.
+This project is licensed under the MIT License.
