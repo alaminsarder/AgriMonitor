@@ -1,0 +1,2 @@
+echo java -cp "out;libs/*" com.agrimonitor.Main > Run.bat
+Run.bat

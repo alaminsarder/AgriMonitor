@@ -28,6 +28,7 @@ public class MainFrame extends JFrame {
         "Sales Management",
         "Profit / Loss",
         "Weather",
+        "Season Guide",
         "AI Assistant",
         "Report Generation",
         "Profile"
@@ -184,6 +185,7 @@ public class MainFrame extends JFrame {
         contentPanel.add(new SalesPanel(), "Sales Management");
         contentPanel.add(new ProfitLossPanel(), "Profit / Loss");
         contentPanel.add(new WeatherPanel(), "Weather");
+        contentPanel.add(new SeasonGuidePanel(), "Season Guide");
         contentPanel.add(new ChatPanel(), "AI Assistant");
         contentPanel.add(new ReportPanel(), "Report Generation");
         contentPanel.add(new ProfilePanel(), "Profile");
