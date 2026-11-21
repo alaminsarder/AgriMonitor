@@ -4,42 +4,48 @@ import com.agrimonitor.db.EnvLoader;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.io.BufferedReader;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
+import java.net.URI;
+import java.net.URLEncoder;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 public class AIChatService {
 
-    private static final int CONNECT_TIMEOUT_MS = 15000;
-    private static final int READ_TIMEOUT_MS = 60000;
+    private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(15);
+    private static final Duration READ_TIMEOUT = Duration.ofSeconds(60);
+    private static final String GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models/";
+    private static final String DEFAULT_OPENAI_URL = "https://api.openai.com/v1";
+
+    private static final Set<String> IGNORED_PREFIXES = Set.of(
+            "AI request failed", "AI model not found", "AI limit reached",
+            "AI is not configured", "The AI ", "Nothing to send"
+    );
 
     private final String provider;
     private final String apiKey;
     private final String model;
     private final String baseUrl;
+    private final HttpClient httpClient;
 
     public AIChatService() {
-        String p = EnvLoader.get("AI_PROVIDER");
-        this.provider = (p == null || p.trim().isEmpty()) ? "gemini" : p.trim().toLowerCase();
-        String k = EnvLoader.get("AI_API_KEY");
-        this.apiKey = k == null ? "" : k.trim();
+        this.provider = getEnvOrDefault("AI_PROVIDER", "gemini").toLowerCase();
+        this.apiKey = getEnvOrDefault("AI_API_KEY", "");
 
-        String m = EnvLoader.get("AI_MODEL");
-        if (m == null || m.trim().isEmpty()) {
-            m = "gemini".equals(provider) ? "gemini-flash-latest" : "gpt-4o-mini";
-        }
-        this.model = m.trim();
+        String defaultModel = "gemini".equals(provider) ? "gemini-flash-latest" : "gpt-4o-mini";
+        this.model = getEnvOrDefault("AI_MODEL", defaultModel);
 
-        String b = EnvLoader.get("AI_BASE_URL");
-        if (b == null || b.trim().isEmpty()) b = "https://api.openai.com/v1";
-        b = b.trim();
-        this.baseUrl = b.endsWith("/") ? b.substring(0, b.length() - 1) : b;
+        String rawBaseUrl = getEnvOrDefault("AI_BASE_URL", DEFAULT_OPENAI_URL);
+        this.baseUrl = rawBaseUrl.endsWith("/") ? rawBaseUrl.substring(0, rawBaseUrl.length() - 1) : rawBaseUrl;
+
+        this.httpClient = HttpClient.newBuilder()
+                .connectTimeout(CONNECT_TIMEOUT)
+                .build();
     }
 
     public boolean isConfigured() {
@@ -51,183 +57,223 @@ public class AIChatService {
 
     public String chat(String systemPrompt, List<ChatMessage> history) throws Exception {
         if (!isConfigured()) {
-            throw new IllegalStateException(
-                    "AI is not configured. Add AI_API_KEY to your .env file (see .env.example).");
+            throw new IllegalStateException("AI is not configured. Add AI_API_KEY to your .env file (see .env.example).");
         }
-        if (history == null || history.isEmpty()) {
+
+        List<ChatMessage> cleanHistory = sanitize(history);
+        if (cleanHistory.isEmpty()) {
             throw new IllegalArgumentException("Nothing to send.");
         }
-        List<ChatMessage> clean = sanitize(history);
-        if (clean.isEmpty()) {
-            throw new IllegalArgumentException("Nothing to send.");
-        }
-        if ("gemini".equals(provider)) return callGemini(systemPrompt, clean);
-        return callOpenAiStyle(systemPrompt, clean);
+
+        return "gemini".equals(provider)
+                ? callGeminiWithFallback(systemPrompt, cleanHistory)
+                : callOpenAiStyle(systemPrompt, cleanHistory);
     }
 
-    private static List<ChatMessage> sanitize(List<ChatMessage> history) {
-        List<ChatMessage> out = new ArrayList<>();
-        for (ChatMessage m : history) {
-            if (m == null || m.getText() == null || m.getText().trim().isEmpty()) continue;
-            String t = m.getText().trim();
-            if (t.startsWith("AI request failed") || t.startsWith("AI model not found")
-                    || t.startsWith("AI limit reached") || t.startsWith("AI is not configured")
-                    || t.startsWith("The AI ") || t.startsWith("Nothing to send")) {
-                continue;
-            }
-            out.add(m);
+    private List<ChatMessage> sanitize(List<ChatMessage> history) {
+        if (history == null || history.isEmpty()) return List.of();
+
+        List<ChatMessage> cleaned = new ArrayList<>();
+        for (ChatMessage msg : history) {
+            if (msg == null || msg.getText() == null) continue;
+            String text = msg.getText().trim();
+            if (text.isEmpty() || isSystemErrorMessage(text)) continue;
+            cleaned.add(msg);
         }
-        while (!out.isEmpty() && !out.get(0).isUser()) {
-            out.remove(0);
+
+        // Ensure conversation starts and ends with a user message
+        while (!cleaned.isEmpty() && !cleaned.get(0).isUser()) {
+            cleaned.remove(0);
         }
-        while (!out.isEmpty() && !out.get(out.size() - 1).isUser()) {
-            out.remove(out.size() - 1);
+        while (!cleaned.isEmpty() && !cleaned.get(cleaned.size() - 1).isUser()) {
+            cleaned.remove(cleaned.size() - 1);
         }
-        return out;
+        return cleaned;
     }
 
-    private String callGemini(String systemPrompt, List<ChatMessage> history) throws Exception {
+    private boolean isSystemErrorMessage(String text) {
+        return IGNORED_PREFIXES.stream().anyMatch(text::startsWith);
+    }
+
+    private String callGeminiWithFallback(String systemPrompt, List<ChatMessage> history) throws Exception {
         try {
             return callGemini(systemPrompt, history, true);
-        } catch (Exception e) {
-            String m = e.getMessage() == null ? "" : e.getMessage().toLowerCase();
-            if (m.contains("thinking") || m.contains("invalid argument") || m.contains("http 400")) {
+        } catch (ApiException e) {
+            String msg = e.getMessage().toLowerCase();
+            if (e.statusCode == 400 && (msg.contains("thinking") || msg.contains("invalid argument"))) {
                 return callGemini(systemPrompt, history, false);
             }
             throw e;
         }
     }
 
-    private String callGemini(String systemPrompt, List<ChatMessage> history, boolean noThinking) throws Exception {
-        String url = "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent";
+    private String callGemini(String systemPrompt, List<ChatMessage> history, boolean disableThinking) throws Exception {
+        String encodedModel = URLEncoder.encode(model, StandardCharsets.UTF_8);
+        String url = GEMINI_BASE_URL + encodedModel + ":generateContent";
 
         JSONObject body = new JSONObject();
-        if (systemPrompt != null && !systemPrompt.isEmpty()) {
+        if (systemPrompt != null && !systemPrompt.isBlank()) {
             body.put("system_instruction", new JSONObject()
                     .put("parts", new JSONArray().put(new JSONObject().put("text", systemPrompt))));
         }
+
+        body.put("contents", buildGeminiContents(history));
+
+        JSONObject genConfig = new JSONObject()
+                .put("temperature", 0.6)
+                .put("maxOutputTokens", 1500);
+
+        if (disableThinking) {
+            genConfig.put("thinkingConfig", new JSONObject().put("thinkingBudget", 0));
+        }
+        body.put("generationConfig", genConfig);
+
+        String responseJson = sendPostRequest(url, body.toString(), "x-goog-api-key", apiKey);
+        return parseGeminiResponse(responseJson);
+    }
+
+    private JSONArray buildGeminiContents(List<ChatMessage> history) {
         JSONArray contents = new JSONArray();
-        for (ChatMessage m : history) {
-            String role = m.isUser() ? "user" : "model";
-            int n = contents.length();
-            if (n > 0 && contents.getJSONObject(n - 1).optString("role").equals(role)) {
-                JSONObject prev = contents.getJSONObject(n - 1);
-                JSONObject part = prev.getJSONArray("parts").getJSONObject(0);
-                part.put("text", part.optString("text") + "\n" + m.getText().trim());
+        for (ChatMessage msg : history) {
+            String role = msg.isUser() ? "user" : "model";
+            String text = msg.getText().trim();
+            int lastIdx = contents.length() - 1;
+
+            // Merge consecutive messages from the same role
+            if (lastIdx >= 0 && contents.getJSONObject(lastIdx).optString("role").equals(role)) {
+                JSONObject lastPart = contents.getJSONObject(lastIdx).getJSONArray("parts").getJSONObject(0);
+                lastPart.put("text", lastPart.optString("text") + "\n" + text);
             } else {
                 contents.put(new JSONObject()
                         .put("role", role)
-                        .put("parts", new JSONArray().put(new JSONObject().put("text", m.getText().trim()))));
+                        .put("parts", new JSONArray().put(new JSONObject().put("text", text))));
             }
         }
-        body.put("contents", contents);
+        return contents;
+    }
 
-        JSONObject gen = new JSONObject().put("temperature", 0.6).put("maxOutputTokens", 1500);
-        if (noThinking) {
-            gen.put("thinkingConfig", new JSONObject().put("thinkingBudget", 0));
-        }
-        body.put("generationConfig", gen);
-
-        String json = post(url, body.toString(), "x-goog-api-key", apiKey);
+    private String parseGeminiResponse(String json) throws Exception {
         JSONObject res = new JSONObject(json);
+        JSONArray candidates = res.optJSONArray("candidates");
 
-        JSONArray cands = res.optJSONArray("candidates");
-        if (cands == null || cands.length() == 0) {
-            JSONObject fb = res.optJSONObject("promptFeedback");
-            if (fb != null && fb.has("blockReason")) {
-                throw new Exception("The AI could not answer this message (" + fb.optString("blockReason") + ").");
+        if (candidates == null || candidates.isEmpty()) {
+            JSONObject feedback = res.optJSONObject("promptFeedback");
+            if (feedback != null && feedback.has("blockReason")) {
+                throw new Exception("The AI could not answer this message (" + feedback.optString("blockReason") + ").");
             }
             throw new Exception("The AI returned an empty answer. Please try again.");
         }
-        JSONObject content = cands.getJSONObject(0).optJSONObject("content");
-        JSONArray parts = content == null ? null : content.optJSONArray("parts");
-        StringBuilder sb = new StringBuilder();
+
+        JSONObject content = candidates.getJSONObject(0).optJSONObject("content");
+        JSONArray parts = (content != null) ? content.optJSONArray("parts") : null;
+
+        StringBuilder reply = new StringBuilder();
         if (parts != null) {
-            for (int i = 0; i < parts.length(); i++) sb.append(parts.getJSONObject(i).optString("text", ""));
+            for (int i = 0; i < parts.length(); i++) {
+                reply.append(parts.getJSONObject(i).optString("text", ""));
+            }
         }
-        String out = sb.toString().trim();
-        if (out.isEmpty()) throw new Exception("The AI returned an empty answer. Please try again.");
-        return out;
+
+        String result = reply.toString().trim();
+        if (result.isEmpty()) {
+            throw new Exception("The AI returned an empty answer. Please try again.");
+        }
+        return result;
     }
 
     private String callOpenAiStyle(String systemPrompt, List<ChatMessage> history) throws Exception {
         JSONArray messages = new JSONArray();
-        if (systemPrompt != null && !systemPrompt.isEmpty()) {
+        if (systemPrompt != null && !systemPrompt.isBlank()) {
             messages.put(new JSONObject().put("role", "system").put("content", systemPrompt));
         }
-        for (ChatMessage m : history) {
-            messages.put(new JSONObject().put("role", m.isUser() ? "user" : "assistant").put("content", m.getText()));
+        for (ChatMessage msg : history) {
+            messages.put(new JSONObject()
+                    .put("role", msg.isUser() ? "user" : "assistant")
+                    .put("content", msg.getText().trim()));
         }
+
         JSONObject body = new JSONObject()
                 .put("model", model)
                 .put("messages", messages)
                 .put("temperature", 0.6)
                 .put("max_tokens", 1500);
 
-        String json = post(baseUrl + "/chat/completions", body.toString(), "Authorization", "Bearer " + apiKey);
-        JSONObject res = new JSONObject(json);
+        String responseJson = sendPostRequest(baseUrl + "/chat/completions", body.toString(), "Authorization", "Bearer " + apiKey);
+        JSONObject res = new JSONObject(responseJson);
         JSONArray choices = res.optJSONArray("choices");
-        if (choices == null || choices.length() == 0) throw new Exception("The AI returned an empty answer. Please try again.");
-        String out = choices.getJSONObject(0).getJSONObject("message").optString("content", "").trim();
-        if (out.isEmpty()) throw new Exception("The AI returned an empty answer. Please try again.");
-        return out;
+
+        if (choices == null || choices.isEmpty()) {
+            throw new Exception("The AI returned an empty answer. Please try again.");
+        }
+
+        String result = choices.getJSONObject(0).getJSONObject("message").optString("content", "").trim();
+        if (result.isEmpty()) {
+            throw new Exception("The AI returned an empty answer. Please try again.");
+        }
+        return result;
     }
 
-    private String post(String urlString, String body, String authHeader, String authValue) throws Exception {
-        int attempts = 0;
-        while (true) {
-            attempts++;
-            HttpURLConnection c = (HttpURLConnection) new URL(urlString).openConnection();
-            try {
-                c.setRequestMethod("POST");
-                c.setConnectTimeout(CONNECT_TIMEOUT_MS);
-                c.setReadTimeout(READ_TIMEOUT_MS);
-                c.setDoOutput(true);
-                c.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
-                c.setRequestProperty(authHeader, authValue);
-                try (OutputStream os = c.getOutputStream()) {
-                    os.write(body.getBytes(StandardCharsets.UTF_8));
-                }
-                int code = c.getResponseCode();
-                String text = read(code >= 400 ? c.getErrorStream() : c.getInputStream());
-                if (code >= 200 && code < 300) return text;
+    private String sendPostRequest(String url, String payload, String authHeader, String authValue) throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .timeout(READ_TIMEOUT)
+                .header("Content-Type", "application/json; charset=UTF-8")
+                .header(authHeader, authValue)
+                .POST(HttpRequest.BodyPublishers.ofString(payload, StandardCharsets.UTF_8))
+                .build();
 
-                if ((code == 429 || code == 503) && attempts < 2) {
-                    Thread.sleep(2500);
-                    continue;
-                }
-                throw new Exception(friendlyError(code, text));
-            } finally {
-                c.disconnect();
+        int maxAttempts = 2;
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+            int statusCode = response.statusCode();
+
+            if (statusCode >= 200 && statusCode < 300) {
+                return response.body();
             }
+
+            if ((statusCode == 429 || statusCode == 503) && attempt < maxAttempts) {
+                Thread.sleep(2500);
+                continue;
+            }
+
+            throw new ApiException(statusCode, formatFriendlyError(statusCode, response.body()));
         }
+        throw new Exception("Unexpected error during API request.");
     }
 
-    private static String read(InputStream in) throws Exception {
-        if (in == null) return "";
-        try (BufferedReader r = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
-            StringBuilder sb = new StringBuilder();
-            String line;
-            while ((line = r.readLine()) != null) sb.append(line).append('\n');
-            return sb.toString();
-        }
-    }
-
-    private static String friendlyError(int code, String body) {
+    private static String formatFriendlyError(int statusCode, String responseBody) {
         String detail = "";
         try {
-            JSONObject o = new JSONObject(body);
-            JSONObject err = o.optJSONObject("error");
+            JSONObject err = new JSONObject(responseBody).optJSONObject("error");
             if (err != null) detail = err.optString("message", "");
         } catch (Exception ignored) { }
 
-        String msg;
-        if (code == 400 && detail.toLowerCase().contains("api key")) msg = "The AI API key is invalid.";
-        else if (code == 401 || code == 403) msg = "The AI API key was rejected. Check AI_API_KEY in .env.";
-        else if (code == 404) msg = "AI model not found. Check AI_MODEL in .env.";
-        else if (code == 429) msg = "AI limit reached (too many requests). Please wait a minute and try again.";
-        else if (code >= 500) msg = "The AI server is busy right now. Please try again shortly.";
-        else msg = "AI request failed (HTTP " + code + ").";
-        return detail.isEmpty() ? msg : msg + "\n(" + detail + ")";
+        String userMessage = switch (statusCode) {
+            case 400 -> detail.toLowerCase().contains("api key")
+                    ? "The AI API key is invalid."
+                    : "AI request failed (HTTP 400).";
+            case 401, 403 -> "The AI API key was rejected. Check AI_API_KEY in .env.";
+            case 404 -> "AI model not found. Check AI_MODEL in .env.";
+            case 429 -> "AI limit reached (too many requests). Please wait a minute and try again.";
+            default -> (statusCode >= 500)
+                    ? "The AI server is busy right now. Please try again shortly."
+                    : "AI request failed (HTTP " + statusCode + ").";
+        };
+
+        return detail.isEmpty() ? userMessage : userMessage + "\n(" + detail + ")";
+    }
+
+    private static String getEnvOrDefault(String key, String defaultValue) {
+        String val = EnvLoader.get(key);
+        return (val == null || val.isBlank()) ? defaultValue : val.trim();
+    }
+
+    private static class ApiException extends Exception {
+        final int statusCode;
+
+        ApiException(int statusCode, String message) {
+            super(message);
+            this.statusCode = statusCode;
+        }
     }
 }

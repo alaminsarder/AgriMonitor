@@ -31,22 +31,31 @@ public class ChatPanel extends JPanel {
     private static final Color ERROR_BG = new Color(254, 226, 226);
     private static final Color ERROR_FG = new Color(153, 27, 27);
     private static final Color SURFACE = new Color(247, 250, 248);
+
     private static final int MAX_HISTORY_MESSAGES = 12;
     private static final int MAX_SHOWN_ON_OPEN = 40;
+    private static final int TYPING_TICK_MS = 260;
 
-    private final AIChatService ai = new AIChatService();
+    private static final String[] SAMPLE_PROMPTS = {
+            "My crop leaves are turning yellow",
+            "How often should I irrigate my crop?",
+            "Insects are attacking my field",
+            "How can I increase my profit?"
+    };
+
+    private final AIChatService aiService = new AIChatService();
     private final List<ChatMessage> history = new ArrayList<>();
 
-    private final MessagesPanel messages = new MessagesPanel();
-    private final JScrollPane scroll = new JScrollPane(messages);
-    private final JTextArea input = new JTextArea(2, 20);
+    private final MessagesPanel messagesPanel = new MessagesPanel();
+    private final JScrollPane scrollPane = new JScrollPane(messagesPanel);
+    private final JTextArea inputArea = new JTextArea(2, 20);
     private final SendButton sendButton = new SendButton();
     private final JPanel chipsRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 4));
     private final InputBox inputBox = new InputBox();
 
     private ChatHistoryDAO historyDao;
     private Row typingRow;
-    private TypingDots dots;
+    private TypingDots typingDots;
     private Timer typingTimer;
     private boolean busy = false;
 
@@ -60,28 +69,21 @@ public class ChatPanel extends JPanel {
         card.setBorder(new EmptyBorder(20, 24, 22, 24));
 
         card.add(buildHeader(), BorderLayout.NORTH);
-
-        scroll.setBorder(null);
-        scroll.setOpaque(false);
-        scroll.getViewport().setBackground(SURFACE);
-        scroll.getVerticalScrollBar().setUnitIncrement(16);
-        scroll.getVerticalScrollBar().setUI(new ThinScrollUI());
-        scroll.getVerticalScrollBar().setPreferredSize(new Dimension(12, 0));
-        scroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-
-        Surface surface = new Surface();
-        surface.setLayout(new BorderLayout());
-        surface.setBorder(new EmptyBorder(8, 8, 8, 8));
-        surface.add(scroll, BorderLayout.CENTER);
-        card.add(surface, BorderLayout.CENTER);
-
+        card.add(buildMessageSurface(), BorderLayout.CENTER);
         card.add(buildBottom(), BorderLayout.SOUTH);
+
         add(card, BorderLayout.CENTER);
 
-        messages.addComponentListener(new ComponentAdapter() {
+        registerListeners();
+        showWelcome();
+        loadSavedHistory();
+    }
+
+    private void registerListeners() {
+        messagesPanel.addComponentListener(new ComponentAdapter() {
             @Override
             public void componentResized(ComponentEvent e) {
-                messages.revalidate();
+                messagesPanel.revalidate();
             }
         });
 
@@ -90,9 +92,6 @@ public class ChatPanel extends JPanel {
                 FarmContextBuilder.invalidate();
             }
         });
-
-        showWelcome();
-        loadSavedHistory();
     }
 
     private JComponent buildHeader() {
@@ -100,19 +99,36 @@ public class ChatPanel extends JPanel {
         header.setOpaque(false);
         header.add(UITheme.createCardTitle("AI Farming Assistant"), BorderLayout.CENTER);
 
-        StatusPill status = new StatusPill(
-                ai.isConfigured() ? "Online - " + ai.getModel() : "AI key not set",
-                ai.isConfigured());
+        boolean configured = aiService.isConfigured();
+        String statusText = configured ? "Online - " + aiService.getModel() : "AI key not set";
+        StatusPill status = new StatusPill(statusText, configured);
 
-        NewChatButton clear = new NewChatButton("New Chat");
-        clear.addActionListener(e -> clearChat());
+        NewChatButton clearButton = new NewChatButton("New Chat");
+        clearButton.addActionListener(e -> clearChat());
 
         JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 0));
         right.setOpaque(false);
         right.add(status);
-        right.add(clear);
+        right.add(clearButton);
+
         header.add(right, BorderLayout.EAST);
         return header;
+    }
+
+    private JComponent buildMessageSurface() {
+        scrollPane.setBorder(null);
+        scrollPane.setOpaque(false);
+        scrollPane.getViewport().setBackground(SURFACE);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        scrollPane.getVerticalScrollBar().setUI(new ThinScrollUI());
+        scrollPane.getVerticalScrollBar().setPreferredSize(new Dimension(12, 0));
+        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+
+        Surface surface = new Surface();
+        surface.setLayout(new BorderLayout());
+        surface.setBorder(new EmptyBorder(8, 8, 8, 8));
+        surface.add(scrollPane, BorderLayout.CENTER);
+        return surface;
     }
 
     private JComponent buildBottom() {
@@ -120,48 +136,14 @@ public class ChatPanel extends JPanel {
         bottom.setOpaque(false);
 
         chipsRow.setOpaque(false);
-        String[] samples = {
-                "My crop leaves are turning yellow",
-                "How often should I irrigate my crop?",
-                "Insects are attacking my field",
-                "How can I increase my profit?"
-        };
-        for (String s : samples) chipsRow.add(chip(s));
+        for (String sample : SAMPLE_PROMPTS) {
+            chipsRow.add(createChipButton(sample));
+        }
         bottom.add(chipsRow, BorderLayout.NORTH);
 
-        input.setFont(UITheme.FONT_BODY);
-        input.setLineWrap(true);
-        input.setWrapStyleWord(true);
-        input.setOpaque(false);
-        input.setBorder(null);
-        input.setCaretColor(UITheme.PRIMARY);
-        input.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "send");
-        input.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, KeyEvent.SHIFT_DOWN_MASK), "newline");
-        input.getActionMap().put("send", new AbstractAction() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                sendFromInput();
-            }
-        });
-        input.getActionMap().put("newline", new AbstractAction() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                input.append("\n");
-            }
-        });
-        input.addFocusListener(new FocusAdapter() {
-            @Override
-            public void focusGained(FocusEvent e) {
-                inputBox.setFocused(true);
-            }
+        configureInputArea();
 
-            @Override
-            public void focusLost(FocusEvent e) {
-                inputBox.setFocused(false);
-            }
-        });
-
-        JScrollPane inputScroll = new JScrollPane(input);
+        JScrollPane inputScroll = new JScrollPane(inputArea);
         inputScroll.setBorder(null);
         inputScroll.setOpaque(false);
         inputScroll.getViewport().setOpaque(false);
@@ -186,21 +168,63 @@ public class ChatPanel extends JPanel {
         hint.setFont(UITheme.FONT_SMALL);
         hint.setForeground(UITheme.TEXT_LIGHT);
         bottom.add(hint, BorderLayout.SOUTH);
+
         return bottom;
     }
 
-    private JButton chip(String text) {
-        ChipButton b = new ChipButton(text);
-        b.addActionListener(e -> send(text));
-        return b;
+    private void configureInputArea() {
+        inputArea.setFont(UITheme.FONT_BODY);
+        inputArea.setLineWrap(true);
+        inputArea.setWrapStyleWord(true);
+        inputArea.setOpaque(false);
+        inputArea.setBorder(null);
+        inputArea.setCaretColor(UITheme.PRIMARY);
+
+        inputArea.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "send");
+        inputArea.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, KeyEvent.SHIFT_DOWN_MASK), "newline");
+
+        inputArea.getActionMap().put("send", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                sendFromInput();
+            }
+        });
+
+        inputArea.getActionMap().put("newline", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                inputArea.append("\n");
+            }
+        });
+
+        inputArea.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusGained(FocusEvent e) {
+                inputBox.setFocused(true);
+            }
+
+            @Override
+            public void focusLost(FocusEvent e) {
+                inputBox.setFocused(false);
+            }
+        });
+    }
+
+    private JButton createChipButton(String text) {
+        ChipButton button = new ChipButton(text);
+        button.addActionListener(e -> send(text));
+        return button;
     }
 
     private void showWelcome() {
-        String name = Session.getUsername() == null ? "" : " " + Session.getUsername();
-        addBubble("Hello" + name + "! I am your farming assistant.\n"
+        String username = Session.getUsername();
+        String greetingName = (username == null || username.isBlank()) ? "" : " " + username.trim();
+
+        addBubble("Hello" + greetingName + "! I am your farming assistant.\n"
                 + "Tell me about your problem - a crop disease, insects, irrigation, fertilizer, weather or profit - "
                 + "and we will discuss it together. You can write in Bangla or English.", false, false);
-        if (!ai.isConfigured()) {
+
+        if (!aiService.isConfigured()) {
             addBubble("The AI key is not set yet. Add AI_API_KEY to the .env file in the project folder "
                     + "(see .env.example), then restart the app.", false, true);
         }
@@ -208,39 +232,44 @@ public class ChatPanel extends JPanel {
 
     private void clearChat() {
         if (busy) return;
+
         history.clear();
-        new Thread(() -> {
-            ChatHistoryDAO dao = dao();
+        runAsync(() -> {
+            ChatHistoryDAO dao = getDao();
             if (dao != null) dao.clear();
-        }, "chat-clear").start();
-        messages.removeAll();
+        }, "chat-clear");
+
+        messagesPanel.removeAll();
         chipsRow.setVisible(true);
         showWelcome();
-        messages.revalidate();
-        messages.repaint();
+        refreshMessages();
     }
 
     private void sendFromInput() {
-        send(input.getText());
+        send(inputArea.getText());
     }
 
-    private void send(String raw) {
+    private void send(String rawText) {
         if (busy) return;
-        String text = raw == null ? "" : raw.trim();
+
+        String text = (rawText == null) ? "" : rawText.trim();
         if (text.isEmpty()) return;
 
-        input.setText("");
+        inputArea.setText("");
         chipsRow.setVisible(false);
         addBubble(text, true, false);
-        history.add(new ChatMessage(ChatMessage.USER, text));
+
+        ChatMessage userMessage = ChatMessage.user(text);
+        history.add(userMessage);
+
         setBusy(true);
         showTyping();
 
-        final List<ChatMessage> toSend = recentHistory();
+        final List<ChatMessage> payloadHistory = recentHistory();
         new SwingWorker<String, Void>() {
             @Override
             protected String doInBackground() throws Exception {
-                return ai.chat(buildSystemPrompt(), toSend);
+                return aiService.chat(buildSystemPrompt(), payloadHistory);
             }
 
             @Override
@@ -248,17 +277,21 @@ public class ChatPanel extends JPanel {
                 hideTyping();
                 try {
                     String reply = get();
-                    history.add(new ChatMessage(ChatMessage.ASSISTANT, reply));
+                    history.add(ChatMessage.assistant(reply));
                     addBubble(cleanMarkdown(reply), false, false);
-                    saveInBackground(text, reply);
+                    saveExchangeAsync(text, reply);
                 } catch (Exception ex) {
-                    Throwable t = ex.getCause() != null ? ex.getCause() : ex;
-                    if (!history.isEmpty()) history.remove(history.size() - 1);
-                    input.setText(text);
-                    addBubble(t.getMessage() == null ? "Something went wrong. Please try again." : t.getMessage(), false, true);
+                    Throwable cause = (ex.getCause() != null) ? ex.getCause() : ex;
+                    history.remove(userMessage);
+                    inputArea.setText(text);
+                    String errorMsg = (cause.getMessage() == null || cause.getMessage().isBlank())
+                            ? "Something went wrong. Please try again."
+                            : cause.getMessage();
+                    addBubble(errorMsg, false, true);
+                } finally {
+                    setBusy(false);
+                    inputArea.requestFocusInWindow();
                 }
-                setBusy(false);
-                input.requestFocusInWindow();
             }
         }.execute();
     }
@@ -267,11 +300,11 @@ public class ChatPanel extends JPanel {
         return FarmAssistantPrompt.build(FarmContextBuilder.build());
     }
 
-    private synchronized ChatHistoryDAO dao() {
+    private synchronized ChatHistoryDAO getDao() {
         if (historyDao == null) {
             try {
                 historyDao = new ChatHistoryDAO();
-            } catch (Throwable t) {
+            } catch (Throwable ignored) {
                 historyDao = null;
             }
         }
@@ -283,114 +316,134 @@ public class ChatPanel extends JPanel {
         new SwingWorker<List<ChatMessage>, Void>() {
             @Override
             protected List<ChatMessage> doInBackground() {
-                ChatHistoryDAO dao = dao();
-                return dao == null ? new ArrayList<ChatMessage>() : dao.loadRecent(MAX_SHOWN_ON_OPEN);
+                ChatHistoryDAO dao = getDao();
+                return (dao == null) ? List.of() : dao.loadRecent(MAX_SHOWN_ON_OPEN);
             }
 
             @Override
             protected void done() {
                 try {
                     List<ChatMessage> saved = get();
-                    if (!saved.isEmpty() && history.isEmpty()) {
+                    if (saved != null && !saved.isEmpty() && history.isEmpty()) {
                         history.addAll(saved);
                         chipsRow.setVisible(false);
-                        for (ChatMessage m : saved) {
-                            addBubble(m.isUser() ? m.getText() : cleanMarkdown(m.getText()), m.isUser(), false);
+                        for (ChatMessage msg : saved) {
+                            String content = msg.isUser() ? msg.getText() : cleanMarkdown(msg.getText());
+                            addBubble(content, msg.isUser(), false);
                         }
                     }
                 } catch (Exception ignored) {
+                } finally {
+                    setBusy(false);
                 }
-                setBusy(false);
             }
         }.execute();
     }
 
-    private void saveInBackground(final String question, final String answer) {
-        new Thread(() -> {
-            ChatHistoryDAO dao = dao();
+    private void saveExchangeAsync(String question, String answer) {
+        runAsync(() -> {
+            ChatHistoryDAO dao = getDao();
             if (dao != null) dao.saveExchange(question, answer);
-        }, "chat-save").start();
+        }, "chat-save");
+    }
+
+    private void runAsync(Runnable task, String threadName) {
+        Thread thread = new Thread(task, threadName);
+        thread.setDaemon(true);
+        thread.start();
     }
 
     private List<ChatMessage> recentHistory() {
-        int from = Math.max(0, history.size() - MAX_HISTORY_MESSAGES);
-        List<ChatMessage> list = new ArrayList<>(history.subList(from, history.size()));
-        while (!list.isEmpty() && !list.get(0).isUser()) list.remove(0);
-        return list;
+        int startIndex = Math.max(0, history.size() - MAX_HISTORY_MESSAGES);
+        List<ChatMessage> window = new ArrayList<>(history.subList(startIndex, history.size()));
+        while (!window.isEmpty() && !window.get(0).isUser()) {
+            window.remove(0);
+        }
+        return window;
     }
 
-    private void setBusy(boolean b) {
-        busy = b;
-        sendButton.setEnabled(!b);
-        input.setEnabled(!b);
+    private void setBusy(boolean isBusy) {
+        this.busy = isBusy;
+        sendButton.setEnabled(!isBusy);
+        inputArea.setEnabled(!isBusy);
     }
 
-    private void addBubble(String text, boolean user, boolean error) {
-        Bubble bubble = new Bubble(text, user, error);
-        messages.add(new Row(bubble, user));
-        messages.revalidate();
-        messages.repaint();
+    private void addBubble(String text, boolean isUser, boolean isError) {
+        Bubble bubble = new Bubble(text, isUser, isError);
+        messagesPanel.add(new Row(bubble, isUser));
+        refreshMessages();
         scrollToBottom();
+    }
+
+    private void refreshMessages() {
+        messagesPanel.revalidate();
+        messagesPanel.repaint();
     }
 
     private void showTyping() {
-        dots = new TypingDots();
-        typingRow = new Row(dots, false);
-        messages.add(typingRow);
-        messages.revalidate();
+        if (typingTimer != null && typingTimer.isRunning()) {
+            typingTimer.stop();
+        }
+        typingDots = new TypingDots();
+        typingRow = new Row(typingDots, false);
+        messagesPanel.add(typingRow);
+        refreshMessages();
         scrollToBottom();
-        typingTimer = new Timer(260, e -> {
-            if (dots != null) dots.tick();
+
+        typingTimer = new Timer(TYPING_TICK_MS, e -> {
+            if (typingDots != null) typingDots.tick();
         });
         typingTimer.start();
     }
 
     private void hideTyping() {
-        if (typingTimer != null) typingTimer.stop();
+        if (typingTimer != null) {
+            typingTimer.stop();
+            typingTimer = null;
+        }
         if (typingRow != null) {
-            messages.remove(typingRow);
+            messagesPanel.remove(typingRow);
             typingRow = null;
-            dots = null;
-            messages.revalidate();
-            messages.repaint();
+            typingDots = null;
+            refreshMessages();
         }
     }
 
     private void scrollToBottom() {
         SwingUtilities.invokeLater(() -> {
-            JScrollBar bar = scroll.getVerticalScrollBar();
-            bar.setValue(bar.getMaximum());
+            JScrollBar verticalBar = scrollPane.getVerticalScrollBar();
+            verticalBar.setValue(verticalBar.getMaximum());
         });
     }
 
-    static String cleanMarkdown(String s) {
-        if (s == null) return "";
-        s = s.replace("\r", "");
-        s = s.replaceAll("(?m)^\\s*#{1,6}\\s*", "");
-        s = s.replaceAll("\\*\\*(.+?)\\*\\*", "$1");
-        s = s.replaceAll("(?m)^\\s*[*\\-]\\s+", "\u2022 ");
-        s = s.replaceAll("(?<![\\w*])\\*(\\S[^*\\n]*?)\\*(?![\\w*])", "$1");
-        s = s.replaceAll("`([^`\\n]*)`", "$1");
-        return s.trim();
+    static String cleanMarkdown(String raw) {
+        if (raw == null) return "";
+        String cleaned = raw.replace("\r", "");
+        cleaned = cleaned.replaceAll("(?m)^\\s*#{1,6}\\s*", "");
+        cleaned = cleaned.replaceAll("\\*\\*(.+?)\\*\\*", "$1");
+        cleaned = cleaned.replaceAll("(?m)^\\s*[*\\-]\\s+", "\u2022 ");
+        cleaned = cleaned.replaceAll("(?<![\\w*])\\*(\\S[^*\\n]*?)\\*(?![\\w*])", "$1");
+        cleaned = cleaned.replaceAll("`([^`\\n]*)`", "$1");
+        return cleaned.trim();
     }
 
-    private static void smooth(Graphics2D g) {
+    private static void enableAntialiasing(Graphics2D g) {
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
         g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
     }
 
-    private static Color alpha(Color c, int a) {
-        return new Color(c.getRed(), c.getGreen(), c.getBlue(), a);
+    private static Color withAlpha(Color color, int alpha) {
+        return new Color(color.getRed(), color.getGreen(), color.getBlue(), alpha);
     }
 
-    private static void softCard(Graphics2D g, int w, int h, Color fill, Color border) {
+    private static void paintSoftCard(Graphics2D g, int width, int height, Color fill, Color border) {
         g.setColor(new Color(0, 0, 0, 10));
-        g.fill(new RoundRectangle2D.Double(1, 3, w - 2, h - 3, 22, 22));
+        g.fill(new RoundRectangle2D.Double(1, 3, width - 2, height - 3, 22, 22));
         g.setColor(fill);
-        g.fill(new RoundRectangle2D.Double(0, 0, w - 1, h - 3, 22, 22));
+        g.fill(new RoundRectangle2D.Double(0, 0, width - 1, height - 3, 22, 22));
         g.setColor(border);
-        g.draw(new RoundRectangle2D.Double(0.5, 0.5, w - 2, h - 4, 22, 22));
+        g.draw(new RoundRectangle2D.Double(0.5, 0.5, width - 2, height - 4, 22, 22));
     }
 
     private static class Surface extends JPanel {
@@ -401,7 +454,7 @@ public class ChatPanel extends JPanel {
         @Override
         protected void paintComponent(Graphics g0) {
             Graphics2D g = (Graphics2D) g0.create();
-            smooth(g);
+            enableAntialiasing(g);
             g.setColor(SURFACE);
             g.fill(new RoundRectangle2D.Double(0, 0, getWidth() - 1, getHeight() - 1, 20, 20));
             g.setColor(UITheme.BORDER_COLOR);
@@ -419,32 +472,33 @@ public class ChatPanel extends JPanel {
 
         @Override
         protected JButton createDecreaseButton(int orientation) {
-            return empty();
+            return createEmptyButton();
         }
 
         @Override
         protected JButton createIncreaseButton(int orientation) {
-            return empty();
+            return createEmptyButton();
         }
 
-        private JButton empty() {
-            JButton b = new JButton();
-            Dimension d = new Dimension(0, 0);
-            b.setPreferredSize(d);
-            b.setMinimumSize(d);
-            b.setMaximumSize(d);
-            return b;
+        private JButton createEmptyButton() {
+            JButton button = new JButton();
+            Dimension zero = new Dimension(0, 0);
+            button.setPreferredSize(zero);
+            button.setMinimumSize(zero);
+            button.setMaximumSize(zero);
+            return button;
         }
 
         @Override
         protected void paintTrack(Graphics g, JComponent c, Rectangle r) {
+            // Transparent track
         }
 
         @Override
         protected void paintThumb(Graphics g, JComponent c, Rectangle r) {
             if (r.isEmpty() || !scrollbar.isEnabled()) return;
             Graphics2D g2 = (Graphics2D) g.create();
-            smooth(g2);
+            enableAntialiasing(g2);
             g2.setColor(thumbColor);
             g2.fillRoundRect(r.x + 3, r.y + 2, r.width - 6, r.height - 4, 8, 8);
             g2.dispose();
@@ -469,16 +523,19 @@ public class ChatPanel extends JPanel {
         @Override
         protected void paintComponent(Graphics g0) {
             Graphics2D g = (Graphics2D) g0.create();
-            smooth(g);
+            enableAntialiasing(g);
             int w = getWidth();
             int h = getHeight();
-            Color c = ok ? UITheme.SUCCESS : UITheme.DANGER;
-            g.setColor(alpha(c, 26));
+            Color statusColor = ok ? UITheme.SUCCESS : UITheme.DANGER;
+
+            g.setColor(withAlpha(statusColor, 26));
             g.fill(new RoundRectangle2D.Double(0, 0, w - 1, h - 1, h, h));
-            g.setColor(alpha(c, 90));
+            g.setColor(withAlpha(statusColor, 90));
             g.draw(new RoundRectangle2D.Double(0.5, 0.5, w - 2, h - 2, h, h));
-            g.setColor(c);
+
+            g.setColor(statusColor);
             g.fill(new Ellipse2D.Double(13, (h - 8) / 2.0, 8, 8));
+
             g.setFont(new Font(UIKit.FAMILY, Font.BOLD, 12));
             FontMetrics fm = g.getFontMetrics();
             g.setColor(ok ? UITheme.PRIMARY_DARK : UITheme.DANGER);
@@ -492,12 +549,7 @@ public class ChatPanel extends JPanel {
 
         NewChatButton(String text) {
             super(text);
-            setContentAreaFilled(false);
-            setBorderPainted(false);
-            setFocusPainted(false);
-            setOpaque(false);
-            setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-            setPreferredSize(new Dimension(126, 38));
+            configureFlatButton(new Dimension(126, 38));
             addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseEntered(MouseEvent e) {
@@ -513,13 +565,23 @@ public class ChatPanel extends JPanel {
             });
         }
 
+        private void configureFlatButton(Dimension size) {
+            setContentAreaFilled(false);
+            setBorderPainted(false);
+            setFocusPainted(false);
+            setOpaque(false);
+            setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            setPreferredSize(size);
+        }
+
         @Override
         protected void paintComponent(Graphics g0) {
             Graphics2D g = (Graphics2D) g0.create();
-            smooth(g);
+            enableAntialiasing(g);
             int w = getWidth();
             int h = getHeight();
             Color fg = hover ? Color.WHITE : UITheme.PRIMARY_DARK;
+
             g.setColor(hover ? UITheme.PRIMARY : Color.WHITE);
             g.fill(new RoundRectangle2D.Double(0, 0, w - 1, h - 1, h, h));
             g.setStroke(new BasicStroke(1.6f));
@@ -574,13 +636,15 @@ public class ChatPanel extends JPanel {
         @Override
         protected void paintComponent(Graphics g0) {
             Graphics2D g = (Graphics2D) g0.create();
-            smooth(g);
+            enableAntialiasing(g);
             int w = getWidth();
             int h = getHeight();
+
             g.setColor(hover ? UITheme.PRIMARY : new Color(236, 247, 242));
             g.fill(new RoundRectangle2D.Double(0, 0, w - 1, h - 1, h, h));
-            g.setColor(alpha(UITheme.PRIMARY, hover ? 255 : 90));
+            g.setColor(withAlpha(UITheme.PRIMARY, hover ? 255 : 90));
             g.draw(new RoundRectangle2D.Double(0.5, 0.5, w - 2, h - 2, h, h));
+
             g.setFont(new Font(UIKit.FAMILY, Font.PLAIN, 12));
             FontMetrics fm = g.getFontMetrics();
             g.setColor(hover ? Color.WHITE : UITheme.PRIMARY_DARK);
@@ -596,15 +660,15 @@ public class ChatPanel extends JPanel {
             setOpaque(false);
         }
 
-        void setFocused(boolean f) {
-            focused = f;
+        void setFocused(boolean focused) {
+            this.focused = focused;
             repaint();
         }
 
         @Override
         protected void paintComponent(Graphics g0) {
             Graphics2D g = (Graphics2D) g0.create();
-            smooth(g);
+            enableAntialiasing(g);
             int w = getWidth();
             int h = getHeight();
             g.setColor(Color.WHITE);
@@ -645,10 +709,11 @@ public class ChatPanel extends JPanel {
         @Override
         protected void paintComponent(Graphics g0) {
             Graphics2D g = (Graphics2D) g0.create();
-            smooth(g);
+            enableAntialiasing(g);
             int w = getWidth();
             int h = getHeight();
             RoundRectangle2D shape = new RoundRectangle2D.Double(0, 0, w - 1, h - 1, 22, 22);
+
             if (isEnabled()) {
                 Color top = hover ? UITheme.PRIMARY.brighter() : UITheme.PRIMARY;
                 g.setPaint(new GradientPaint(0, 0, top, w, h, UITheme.PRIMARY_DARK));
@@ -663,6 +728,7 @@ public class ChatPanel extends JPanel {
             plane.lineTo(w * 0.60, h * 0.72);
             plane.lineTo(w * 0.50, h * 0.55);
             plane.closePath();
+
             g.setColor(Color.WHITE);
             g.fill(plane);
             g.dispose();
@@ -713,18 +779,19 @@ public class ChatPanel extends JPanel {
         @Override
         protected void paintComponent(Graphics g0) {
             Graphics2D g = (Graphics2D) g0.create();
-            smooth(g);
+            enableAntialiasing(g);
             int w = getWidth();
             int h = getHeight();
+
             if (user) {
                 g.setPaint(new GradientPaint(0, 0, UITheme.PRIMARY, 0, h, UITheme.PRIMARY_DARK));
                 g.fill(new Ellipse2D.Double(0, 0, w - 1, h - 1));
                 String name = Session.getUsername();
-                String letter = (name == null || name.trim().isEmpty()) ? "U" : name.trim().substring(0, 1).toUpperCase();
+                String initial = (name == null || name.isBlank()) ? "U" : name.trim().substring(0, 1).toUpperCase();
                 g.setFont(new Font(UIKit.FAMILY, Font.BOLD, 15));
                 FontMetrics fm = g.getFontMetrics();
                 g.setColor(Color.WHITE);
-                g.drawString(letter, (w - fm.stringWidth(letter)) / 2, (h - fm.getHeight()) / 2 + fm.getAscent());
+                g.drawString(initial, (w - fm.stringWidth(initial)) / 2, (h - fm.getHeight()) / 2 + fm.getAscent());
             } else {
                 g.setPaint(new GradientPaint(0, 0, new Color(240, 204, 120), 0, h, UITheme.ACCENT));
                 g.fill(new Ellipse2D.Double(0, 0, w - 1, h - 1));
@@ -735,19 +802,20 @@ public class ChatPanel extends JPanel {
     }
 
     private static class Row extends JPanel {
-        Row(JComponent bubble, boolean user) {
+        Row(JComponent bubble, boolean isUser) {
             super(new BorderLayout());
             setOpaque(false);
             setBorder(new EmptyBorder(6, 8, 6, 8));
 
             JPanel avatarWrap = new JPanel(new BorderLayout());
             avatarWrap.setOpaque(false);
-            avatarWrap.add(new AvatarDot(user), BorderLayout.NORTH);
+            avatarWrap.add(new AvatarDot(isUser), BorderLayout.NORTH);
 
             JPanel holder = new JPanel(new BorderLayout(10, 0));
             holder.setOpaque(false);
             holder.add(bubble, BorderLayout.CENTER);
-            if (user) {
+
+            if (isUser) {
                 holder.add(avatarWrap, BorderLayout.EAST);
                 add(holder, BorderLayout.EAST);
             } else {
@@ -777,17 +845,18 @@ public class ChatPanel extends JPanel {
         @Override
         protected void paintComponent(Graphics g0) {
             Graphics2D g = (Graphics2D) g0.create();
-            smooth(g);
+            enableAntialiasing(g);
             int w = getWidth();
             int h = getHeight();
-            softCard(g, w, h, Color.WHITE, UITheme.BORDER_COLOR);
+            paintSoftCard(g, w, h, Color.WHITE, UITheme.BORDER_COLOR);
+
             int cy = (h - 3) / 2;
             for (int i = 0; i < 3; i++) {
-                boolean on = i == phase;
-                double d = on ? 10 : 7;
+                boolean active = (i == phase);
+                double diameter = active ? 10 : 7;
                 int cx = 24 + i * 15;
-                g.setColor(on ? UITheme.PRIMARY : new Color(190, 205, 197));
-                g.fill(new Ellipse2D.Double(cx - d / 2, cy - d / 2, d, d));
+                g.setColor(active ? UITheme.PRIMARY : new Color(190, 205, 197));
+                g.fill(new Ellipse2D.Double(cx - diameter / 2, cy - diameter / 2, diameter, diameter));
             }
             g.dispose();
         }
@@ -795,62 +864,67 @@ public class ChatPanel extends JPanel {
 
     private class Bubble extends JPanel {
         private final JTextArea area = new JTextArea();
-        private final boolean user;
-        private final boolean error;
+        private final boolean isUser;
+        private final boolean isError;
 
-        Bubble(String text, boolean user, boolean error) {
+        Bubble(String text, boolean isUser, boolean isError) {
             super(new BorderLayout());
-            this.user = user;
-            this.error = error;
+            this.isUser = isUser;
+            this.isError = isError;
             setOpaque(false);
+
             area.setText(text);
             area.setEditable(false);
             area.setOpaque(false);
             area.setLineWrap(true);
             area.setWrapStyleWord(true);
             area.setFont(UITheme.FONT_BODY);
-            area.setForeground(error ? ERROR_FG : (user ? Color.WHITE : UITheme.TEXT_DARK));
+            area.setForeground(isError ? ERROR_FG : (isUser ? Color.WHITE : UITheme.TEXT_DARK));
             area.setBorder(null);
             area.setCursor(Cursor.getPredefinedCursor(Cursor.TEXT_CURSOR));
+
             setBorder(new EmptyBorder(12, 18, 15, 18));
             add(area, BorderLayout.CENTER);
         }
 
         @Override
         public Dimension getPreferredSize() {
-            int viewW = messages.getWidth() > 0 ? messages.getWidth() : 700;
-            int maxOuter = Math.max(260, (int) (viewW * 0.70) - 46);
+            int viewportWidth = messagesPanel.getWidth() > 0 ? messagesPanel.getWidth() : 700;
+            int maxOuter = Math.max(260, (int) (viewportWidth * 0.70) - 46);
             int padX = 36;
             int padY = 27;
             int maxInner = maxOuter - padX;
 
             FontMetrics fm = area.getFontMetrics(area.getFont());
-            int natural = 40;
+            int naturalWidth = 40;
             for (String line : area.getText().split("\n", -1)) {
-                natural = Math.max(natural, fm.stringWidth(line) + 6);
+                naturalWidth = Math.max(naturalWidth, fm.stringWidth(line) + 6);
             }
-            int w = Math.min(maxInner, natural);
-            area.setSize(w, Short.MAX_VALUE);
-            int h = area.getPreferredSize().height;
-            return new Dimension(w + padX, h + padY);
+
+            int width = Math.min(maxInner, naturalWidth);
+            area.setSize(width, Short.MAX_VALUE);
+            int height = area.getPreferredSize().height;
+            return new Dimension(width + padX, height + padY);
         }
 
         @Override
         protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
-            smooth(g2);
+            enableAntialiasing(g2);
             int w = getWidth();
             int h = getHeight();
-            if (error) {
-                softCard(g2, w, h, ERROR_BG, new Color(252, 165, 165));
-            } else if (user) {
+
+            if (isError) {
+                paintSoftCard(g2, w, h, ERROR_BG, new Color(252, 165, 165));
+            } else if (isUser) {
                 g2.setColor(new Color(0, 0, 0, 12));
                 g2.fill(new RoundRectangle2D.Double(1, 3, w - 2, h - 3, 22, 22));
                 g2.setPaint(new GradientPaint(0, 0, UITheme.PRIMARY, w, h, UITheme.PRIMARY_DARK));
                 g2.fill(new RoundRectangle2D.Double(0, 0, w - 1, h - 3, 22, 22));
             } else {
-                softCard(g2, w, h, Color.WHITE, UITheme.BORDER_COLOR);
+                paintSoftCard(g2, w, h, Color.WHITE, UITheme.BORDER_COLOR);
             }
+
             g2.dispose();
             super.paintComponent(g);
         }
