@@ -1,0 +1,10 @@
+.env
+out/.env
+.env
+out/
+fatjar/
+jpackage-input/
+dist/
+target/
+
+all-sources.txt
